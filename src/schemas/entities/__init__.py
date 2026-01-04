@@ -4,6 +4,7 @@ Author: Peyman Khodabandehlouei
 """
 
 # Import modules
+from schemas.entities.schemas import RentalCharges, RentalReading
 from schemas.entities.enums import (
     Gender,
     EmploymentType,
@@ -20,4 +21,6 @@ __all__ = [
     "VehicleStatus",
     "EmploymentType",
     "ReservationStatus",
+    "RentalCharges",
+    "RentalReading",
 ]

@@ -24,8 +24,11 @@ from core import (
 )
 
 if TYPE_CHECKING:
+    from core import ClockService
+    from entities.rental import Rental
     from entities.branch import Branch
     from entities.vehicle import Vehicle
+    from schemas.entities import RentalCharges
     from entities.reservation import AddOn, Reservation, InsuranceTier
 
 
@@ -42,6 +45,7 @@ class Customer(BaseUser):
         address (str): Home address of the employee.
         phone_number (str): Phone number of the employee.
         reservations (Reservation): Reservations made by the customer.
+        rentals (Rental): Rentals made by the customer.
         user_id (Optional[str]): ID of the customer.
     """
 
@@ -55,6 +59,7 @@ class Customer(BaseUser):
         address: str,
         phone_number: str,
         reservations: Optional[List["Reservation"]] = None,
+        rentals: Optional[List["Rental"]] = None,
         user_id: Optional[str] = None,
     ) -> None:
         """Constructor method for BaseUser class."""
@@ -87,13 +92,30 @@ class Customer(BaseUser):
                     "all reservations must be instances of Reservation class"
                 )
 
+        # Validate rentals
+        if rentals is None:
+            rentals = []
+        else:
+            if not isinstance(rentals, list):
+                raise ValueError("rentals must be a list.")
+            from entities.rental import Rental
+
+            if not all(isinstance(rental, Rental) for rental in rentals):
+                raise ValueError("all rentals must be instances of Rental class")
+
         # Assign reservations
         self.__reservations = reservations
+        self.__rentals = rentals
 
     @property
     def reservations(self) -> List["Reservation"]:
         """Getter method for reservations."""
         return self.__reservations
+
+    @property
+    def rentals(self) -> List["Rental"]:
+        """Getter method for rentals."""
+        return self.__rentals
 
     def get_reservations(self) -> List["Reservation"]:
         """Returns all reservations created by the customer"""
@@ -108,6 +130,7 @@ class Customer(BaseUser):
         pickup_date: date,
         return_date: date,
         add_ons: Optional[List["AddOn"]] = None,
+        clock: Optional["ClockService"] = None,
     ) -> "Reservation":
         """
         Creates a new reservation and adds it to the customer's reservations.
@@ -120,6 +143,7 @@ class Customer(BaseUser):
             pickup_date (date): The date when the vehicle will be picked up.
             return_date (date): The date when the vehicle will be returned.
             add_ons (Optional[List[AddOn]]): Optional list of add-ons. Defaults to None.
+            clock (Optional[ClockService]): Optional clock service for time-based calculations.
 
         Returns:
             Reservation: The newly created reservation.
@@ -128,10 +152,13 @@ class Customer(BaseUser):
             TypeError: If any parameter has an incorrect type.
             ValueError: If dates violate business constraints.
         """
+        from core.clock_service import SystemClock
         from entities.reservation import Reservation
 
         if vehicle.status != VehicleStatus.AVAILABLE.value:
             raise VehicleNotAvailableError("This car is already reserved.")
+
+        clock = clock or SystemClock()
 
         # Change vehicle status to RESERVED
         vehicle.reserve()
@@ -147,6 +174,7 @@ class Customer(BaseUser):
             pickup_date=pickup_date,
             return_date=return_date,
             add_ons=add_ons,
+            clock=clock,
         )
 
         # Add to customer's reservations
@@ -199,28 +227,66 @@ class Customer(BaseUser):
         # Change vehicle status to AVAILABLE
         reservation.vehicle.status = VehicleStatus.AVAILABLE
 
-    def pickup_vehicle(self, reservation_id: str) -> None:
+    def pickup_vehicle(
+        self,
+        reservation_id: str,
+        pickup_token: str,
+        odometer: float,
+        fuel_level: float,
+        clock: Optional["ClockService"] = None,
+    ) -> "Rental":
         """
-        Mark a vehicle as picked up for a confirmed reservation.
+        Pick up a vehicle and create an active rental.
 
-        Changes the reservation status to ACTIVE and the vehicle status to PICKED_UP.
-        Only reservations with CONFIRMED status can be picked up.
+        Creates a Rental entity with odometer/fuel readings at pickup.
+        The pickup_token ensures idempotent pickups (prevents duplicates).
 
         Args:
             reservation_id (str): The unique ID of the reservation.
+            pickup_token (str): Unique token for idempotent pickup.
+            odometer (float): Current odometer reading.
+            fuel_level (float): Current fuel level (0.0 to 1.0).
+            clock (Optional[ClockService]): Clock service for timestamp.
+
+        Returns:
+            Rental: The newly created rental.
 
         Raises:
-            TypeError: If reservation_id is not a string.
-            ValueError: If reservation_id is empty, reservation is not found,
-                or reservation status is not CONFIRMED.
+            TypeError: If parameters have incorrect types.
+            ValueError: If reservation not found, not approved, or already picked up.
+            PaymentRequiredForPickupError: If invoice not paid.
         """
-        from schemas.entities import ReservationStatus, VehicleStatus
+        from core.clock_service import SystemClock
+        from entities.rental import Rental
+        from schemas.entities import RentalReading
 
-        # Validate reservation_id
+        clock = clock or SystemClock()
+
+        # Validate parameters
         if not isinstance(reservation_id, str):
             raise TypeError("reservation_id must be a string.")
         if not reservation_id:
             raise ValueError("reservation_id cannot be empty.")
+
+        if not isinstance(pickup_token, str):
+            raise TypeError("pickup_token must be a string.")
+        if not pickup_token:
+            raise ValueError("pickup_token cannot be empty.")
+
+        if not isinstance(odometer, (int, float)):
+            raise TypeError("odometer must be a numeric value.")
+        if odometer < 0:
+            raise ValueError("odometer cannot be negative.")
+
+        if not isinstance(fuel_level, (int, float)):
+            raise TypeError("fuel_level must be a numeric value.")
+        if not (0 <= fuel_level <= 1):
+            raise ValueError("fuel_level must be between 0 and 1.")
+
+        # Check for duplicate pickup (idempotency)
+        for existing_rental in self.__rentals:
+            if existing_rental.pickup_token == pickup_token:
+                return existing_rental  # Return existing rental, don't create duplicate
 
         # Find the reservation
         reservation = None
@@ -229,45 +295,98 @@ class Customer(BaseUser):
                 reservation = res
                 break
 
-        # Check if reservation exists
         if reservation is None:
             raise ReservationNotFoundError(reservation_id)
 
-        # Check if reservation can be picked up
+        # Check if reservation is approved
         if reservation.status != ReservationStatus.APPROVED.value:
             raise ReservationNotApprovedError(reservation_id)
 
+        # Check if invoice is paid
         if reservation.invoice.status != InvoiceStatus.COMPLETED.value:
             raise PaymentRequiredForPickupError(reservation_id)
 
-        # Update reservation status to ACTIVE
-        reservation.status = ReservationStatus.PICKED_UP
+        # Create pickup readings
+        pickup_readings = RentalReading(
+            odometer=odometer,
+            fuel_level=fuel_level,
+            timestamp=clock.now(),
+        )
 
-        # Update vehicle status to PICKED_UP
+        # Create rental
+        rental = Rental(
+            reservation=reservation,
+            pickup_token=pickup_token,
+            pickup_readings=pickup_readings,
+            clock=clock,
+        )
+
+        # Update statuses
+        reservation.status = ReservationStatus.PICKED_UP
         reservation.vehicle.status = VehicleStatus.PICKED_UP
 
-    def return_vehicle(self, reservation_id: str) -> None:
-        """
-        Mark a vehicle as returned for an active reservation.
+        # Store rental
+        self.__rentals.append(rental)
 
-        Changes the reservation status to COMPLETED and the vehicle status to AVAILABLE.
-        Only reservations with ACTIVE status can be returned.
+        return rental
+
+    def return_vehicle(
+        self,
+        reservation_id: str,
+        odometer: float,
+        fuel_level: float,
+        manual_damage_charge: float = 0.0,
+        clock: Optional["ClockService"] = None,
+    ) -> "RentalCharges":
+        """
+        Return a vehicle and calculate all charges.
+
+        Completes the rental by recording return readings and computing:
+        - Grace period (1 hour free)
+        - Late fees ($10/hour after grace)
+        - Mileage overage (200km/day allowance, $0.50/km over)
+        - Fuel refill charges
+        - Manual damage charges
 
         Args:
             reservation_id (str): The unique ID of the reservation.
+            odometer (float): Odometer reading at return.
+            fuel_level (float): Fuel level at return (0.0 to 1.0).
+            manual_damage_charge (float): Optional damage fee assessed by agent.
+            clock (Optional[ClockService]): Clock service for timestamp.
+
+        Returns:
+            RentalCharges: Itemized breakdown of all charges.
 
         Raises:
-            TypeError: If reservation_id is not a string.
-            ValueError: If reservation_id is empty, reservation is not found,
-                or reservation status is not ACTIVE.
+            TypeError: If parameters have incorrect types.
+            ValueError: If reservation not found, not picked up, or already returned.
         """
-        from schemas.entities import ReservationStatus, VehicleStatus
+        from core.clock_service import SystemClock
+        from schemas.entities import RentalReading
 
-        # Validate reservation_id
+        clock = clock or SystemClock()
+
+        # Validate parameters
         if not isinstance(reservation_id, str):
             raise TypeError("reservation_id must be a string.")
         if not reservation_id:
             raise ValueError("reservation_id cannot be empty.")
+
+        if not isinstance(odometer, (int, float)):
+            raise TypeError("odometer must be a numeric value.")
+        if odometer < 0:
+            raise ValueError("odometer cannot be negative.")
+
+        if not isinstance(fuel_level, (int, float)):
+            raise TypeError("fuel_level must be a numeric value.")
+        if not (0 <= fuel_level <= 1):
+            raise ValueError("fuel_level must be between 0 and 1.")
+
+        if not isinstance(manual_damage_charge, (int, float)):
+            raise TypeError("manual_damage_charge must be a numeric value.")
+        if manual_damage_charge < 0:
+            raise ValueError("manual_damage_charge cannot be negative.")
 
         # Find the reservation
         reservation = None
@@ -276,19 +395,41 @@ class Customer(BaseUser):
                 reservation = res
                 break
 
-        # Check if reservation exists
         if reservation is None:
             raise ValueError("Reservation with the given ID is not found.")
 
-        # Check if vehicle can be returned
+        # Check if vehicle is picked up
         if reservation.status != ReservationStatus.PICKED_UP.value:
-            raise ValueError("Only active reservations can be returned.")
+            raise ValueError("Only picked-up reservations can be returned.")
 
-        # Update reservation status to COMPLETED
+        # Find the active rental
+        rental = None
+        for r in self.__rentals:
+            if r.reservation.id == reservation_id and not r.is_returned():
+                rental = r
+                break
+
+        if rental is None:
+            raise ValueError("No active rental found for this reservation.")
+
+        # Create return readings
+        return_readings = RentalReading(
+            odometer=odometer,
+            fuel_level=fuel_level,
+            timestamp=clock.now(),
+        )
+
+        # Complete return and calculate charges
+        charges = rental.complete_return(
+            return_readings=return_readings,
+            manual_damage_charge=manual_damage_charge,
+        )
+
+        # Update statuses
         reservation.status = ReservationStatus.COMPLETED
-
-        # Update vehicle status to AVAILABLE
         reservation.vehicle.status = VehicleStatus.AVAILABLE
+
+        return charges
 
     @staticmethod
     def make_creditcard_payment(
@@ -392,6 +533,7 @@ class Customer(BaseUser):
             "phone_number": self.phone_number,
             "address": self.address,
             "reservations": self.__reservations,
+            "rentals": self.__rentals,
         }
 
     def __str__(self):

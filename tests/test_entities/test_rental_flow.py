@@ -9,6 +9,7 @@ the rental flow which is as follows:
     4. The customer attempts to pick up the vehicle before making a payment and fails.
     5. The customer pays for the reservation.
     6. The customer picks up the vehicle successfully.
+    7. The customer returns the vehicle and receives itemized charges.
 """
 
 import pytest
@@ -17,6 +18,7 @@ from core import PaymentRequiredForPickupError, ReservationNotApprovedError
 
 
 def test_rental_flow_success(
+    fake_clock,
     get_customer,
     get_main_branch,
     get_active_agent,
@@ -40,6 +42,7 @@ def test_rental_flow_success(
         return_branch=get_main_branch,
         pickup_date=pickup_date,
         return_date=return_date,
+        clock=fake_clock,
     )
 
     # Check vehicle status after reservation
@@ -50,7 +53,13 @@ def test_rental_flow_success(
 
     # Test ReservationNotApprovedError
     with pytest.raises(ReservationNotApprovedError):
-        get_customer.pickup_vehicle(reservation_id)
+        rental = get_customer.pickup_vehicle(
+            reservation_id=reservation_id,
+            pickup_token="test-token-123",
+            odometer=12500.0,
+            fuel_level=0.8,
+            clock=fake_clock,
+        )
 
     # Approve reservation
     get_active_agent.approve_reservation(get_customer.reservations[0])
@@ -61,7 +70,13 @@ def test_rental_flow_success(
 
     # Test PaymentRequiredForPickupError
     with pytest.raises(PaymentRequiredForPickupError):
-        get_customer.pickup_vehicle(reservation_id)
+        rental = get_customer.pickup_vehicle(
+            reservation_id=reservation_id,
+            pickup_token="test-token-123",
+            odometer=12500.0,
+            fuel_level=0.8,
+            clock=fake_clock,
+        )
 
     # Make payment
     get_customer.make_creditcard_payment(
@@ -70,9 +85,30 @@ def test_rental_flow_success(
     assert get_customer.reservations[0].invoice.status == "completed"
 
     # Pick up vehicle successfully
-    get_customer.pickup_vehicle(reservation_id)
+    rental = get_customer.pickup_vehicle(
+        reservation_id=reservation_id,
+        pickup_token="test-token-123",
+        odometer=12500.0,
+        fuel_level=0.8,
+        clock=fake_clock,
+    )
+    assert rental is not None
+    assert len(get_customer.rentals) == 1
     assert get_economy_vehicle.status == "picked_up"
 
+    # Advance clock 3 days (within grace period)
+    fake_clock.advance(days=3)
+
     # Return vehicle successfully
-    get_customer.return_vehicle(reservation_id)
+    charges = get_customer.return_vehicle(
+        reservation_id=reservation_id,
+        odometer=13100.0,  # 600km driven (3 days * 200km = 600km allowance, no overage)
+        fuel_level=0.8,  # Same fuel level, no charge
+        clock=fake_clock,
+    )
+    assert charges is not None
+    assert charges.total > 0
+    assert charges.late_fee == 0.0  # Within grace period
+    assert charges.mileage_overage_fee == 0.0  # Within allowance
+    assert charges.fuel_refill_fee == 0.0  # Same fuel level
     assert get_economy_vehicle.status == "available"

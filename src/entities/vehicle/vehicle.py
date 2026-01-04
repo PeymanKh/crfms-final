@@ -16,6 +16,7 @@ from schemas.entities import VehicleStatus
 
 
 if TYPE_CHECKING:
+    from core import ClockService
     from entities.branch import Branch
     from entities.vehicle import VehicleClass, MaintenanceRecord
 
@@ -495,6 +496,64 @@ class Vehicle:
             raise ValueError("maintenance_record already exists in the list")
 
         self.__maintenance_records.append(maintenance_record)
+
+    def is_maintenance_due(
+        self,
+        threshold_km: float = 10000,
+        threshold_days: int = 180,
+        clock: Optional["ClockService"] = None,
+    ) -> bool:
+        """
+        Check if vehicle needs maintenance based on odometer or time thresholds.
+
+        Vehicle is considered maintenance-due if:
+            - Within 500km of the odometer threshold, OR
+            - Past the time threshold since last service
+
+        Args:
+            threshold_km (float): Service interval in kilometers. Defaults to 10,000 km.
+            threshold_days (int): Service interval in days. Defaults to 180 days.
+            clock (Optional[ClockService]): Clock service for time checks. Uses SystemClock if None.
+
+        Returns:
+            bool: True if maintenance is due, False otherwise.
+
+        Raises:
+            TypeError: If threshold_km or threshold_days are not numeric.
+            ValueError: If threshold_km or threshold_days are negative.
+        """
+        # Validation
+        if not isinstance(threshold_km, (int, float)):
+            raise TypeError("threshold_km must be a numeric value")
+        if threshold_km < 0:
+            raise ValueError("threshold_km cannot be negative")
+
+        if not isinstance(threshold_days, int):
+            raise TypeError("threshold_days must be an integer")
+        if threshold_days < 0:
+            raise ValueError("threshold_days cannot be negative")
+
+        # Use SystemClock if no clock provided
+        from core.clock_service import SystemClock
+
+        clock = clock or SystemClock()
+
+        # Check odometer threshold (within 500km)
+        km_since_last_service = self.__odometer - self.__last_service_odometer
+        km_until_service = threshold_km - km_since_last_service
+
+        if km_until_service <= 500:
+            return True
+
+        # Check time threshold
+        if self.__maintenance_records:
+            last_service_date = self.__maintenance_records[-1].service_date
+            days_since_service = (clock.today() - last_service_date).days
+
+            if days_since_service >= threshold_days:
+                return True
+
+        return False
 
     def __str__(self):
         """String representation of the Vehicle"""

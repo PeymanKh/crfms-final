@@ -439,6 +439,87 @@ def get_premium_insurance_tier() -> InsuranceTier:
 
 
 @pytest.fixture
+def get_reservation(
+    get_customer,
+    get_economy_vehicle,
+    get_basic_insurance_tier,
+    get_main_branch,
+    get_pickup_and_return_dates,
+    fake_clock,
+):
+    """
+    Returns a complete Reservation instance with:
+        - Customer: Peyman
+        - Vehicle: Economy Toyota Yaris
+        - Insurance: Basic tier
+        - Pickup/Return: Main branch
+        - Dates: From fake_clock (3-day rental)
+        - Status: PENDING
+    """
+    from entities.reservation import Reservation
+    from schemas.entities import ReservationStatus
+
+    pickup_date, return_date = get_pickup_and_return_dates
+
+    return Reservation(
+        status=ReservationStatus.PENDING,
+        creator=get_customer,
+        vehicle=get_economy_vehicle,
+        insurance_tier=get_basic_insurance_tier,
+        pickup_branch=get_main_branch,
+        return_branch=get_main_branch,
+        pickup_date=pickup_date,
+        return_date=return_date,
+        clock=fake_clock,
+    )
+
+
+@pytest.fixture
+def get_rental_reading_factory(fake_clock):
+    """
+    Factory fixture to create RentalReading instances with fake clock.
+
+    Usage:
+        reading = get_rental_reading_factory(odometer=12500, fuel_level=0.8)
+    """
+    from schemas.entities import RentalReading
+
+    def _create_reading(odometer: float, fuel_level: float) -> RentalReading:
+        return RentalReading(
+            odometer=odometer,
+            fuel_level=fuel_level,
+            timestamp=fake_clock.now(),
+        )
+
+    return _create_reading
+
+
+@pytest.fixture
+def get_rental(
+    get_reservation,
+    get_rental_reading_factory,
+    fake_clock,
+):
+    """
+    Returns a Rental instance with:
+        - Reservation: Complete economy car reservation
+        - Pickup token: test-pickup-token-123
+        - Pickup readings: odometer=12500, fuel=0.8
+        - Clock: Fake clock
+    """
+    from entities.rental import Rental
+
+    pickup_reading = get_rental_reading_factory(odometer=12500.0, fuel_level=0.8)
+
+    return Rental(
+        reservation=get_reservation,
+        pickup_token="test-pickup-token-123",
+        pickup_readings=pickup_reading,
+        clock=fake_clock,
+    )
+
+
+@pytest.fixture
 def fake_clock() -> FakeClock:
     """Returns a fake clock set to a known time"""
     return FakeClock(datetime(2026, 1, 10, 9, 0, 0))  # Jan 10, 2026, 9 AM
