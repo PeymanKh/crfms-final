@@ -4,9 +4,17 @@ This module provides public API for custom errors in the application
 Author: Peyman Khodabandehlouei
 """
 
-# Import modules
+# Import configs
+from core.config import config
+from core.logging_config import setup_logging
+
+# Import database manager
+from core.database_manager import db_manager
+
+# Import clock service
 from core.clock_service import ClockService, SystemClock, FakeClock
 
+# Import custom errors
 from core.exceptions import (
     ReturnDateBeforePickupDateError,
     InvalidReservationStatusForCancellationError,
@@ -14,13 +22,24 @@ from core.exceptions import (
     ReservationNotApprovedError,
     ReservationNotFoundError,
     VehicleNotAvailableError,
+    ApplicationStartUpError,
+    ApplicationShutdownError,
 )
 
 # Public API
 __all__ = [
+    # Configs
+    "config",
+    "setup_logging",
+    # Database
+    "db_manager",
+    # Clock
     "FakeClock",
     "SystemClock",
     "ClockService",
+    # Exceptions
+    "ApplicationStartUpError",
+    "ApplicationShutdownError",
     "ReservationNotFoundError",
     "VehicleNotAvailableError",
     "ReservationNotApprovedError",

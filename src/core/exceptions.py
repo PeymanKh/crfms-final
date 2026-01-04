@@ -30,3 +30,17 @@ class ReservationNotApprovedError(Exception):
 class ReservationNotFoundError(Exception):
     def __init__(self, reservation_id: str):
         super().__init__(f"Reservation with ID {reservation_id} not found.")
+
+
+class ApplicationStartUpError(Exception):
+    """Raised when the application fails to start."""
+
+    def __init__(self, message: str):
+        super().__init__(f"Error during application startup: {message}")
+
+
+class ApplicationShutdownError(Exception):
+    """Raised when an error occurs during the application shutdown process."""
+
+    def __init__(self, message: str):
+        super().__init__(f"Error during application shutdown: {message}")
