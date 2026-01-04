@@ -15,7 +15,7 @@ from schemas.entities import Gender, EmploymentType, VehicleStatus, ReservationS
 if TYPE_CHECKING:
     from entities.branch import Branch
     from entities.reservation import Reservation
-    from entities.vehicle import Vehicle, MaintenanceRecord
+    from entities.vehicle import Vehicle
 
 
 class Agent(Employee):

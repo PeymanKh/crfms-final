@@ -5,6 +5,8 @@ Author: Peyman Khodabandehlouei
 """
 
 # Import modules
+from core.clock_service import ClockService, SystemClock, FakeClock
+
 from core.exceptions import (
     ReturnDateBeforePickupDateError,
     InvalidReservationStatusForCancellationError,
@@ -16,6 +18,9 @@ from core.exceptions import (
 
 # Public API
 __all__ = [
+    "FakeClock",
+    "SystemClock",
+    "ClockService",
     "ReservationNotFoundError",
     "VehicleNotAvailableError",
     "ReservationNotApprovedError",

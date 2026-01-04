@@ -32,7 +32,7 @@ def test_create_reservation_when_vehicle_available_success(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     """Test reservation of an available vehicle."""
     # Get pickup and return dates
@@ -60,7 +60,7 @@ def test_create_reservation_when_vehicle_reserved_error(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     """Test reservation of a reserved vehicle error."""
     # Get pickup and return dates
@@ -88,7 +88,7 @@ def test_create_reservation_when_vehicle_pickedup_error(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     """Test reservation of a reserved vehicle error."""
     # Get pickup and return dates
@@ -116,7 +116,7 @@ def test_create_reservation_when_return_date_before_pickup_date_error(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     """Test reservation of a vehicle with return date before pickup date error."""
     # Get pickup and return dates
@@ -142,7 +142,7 @@ def test_canceling_pending_reservation_success(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     # Create date objects for pickup and return dates (Total 3 days)
     # Get pickup and return dates
@@ -172,7 +172,7 @@ def test_canceling_approved_reservation_success(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     # Get pickup and return dates
     pickup_date, return_date = get_pickup_and_return_dates
@@ -204,7 +204,7 @@ def test_canceling_completed_reservation_error(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     # Get pickup and return dates
     pickup_date, return_date = get_pickup_and_return_dates
@@ -237,7 +237,7 @@ def test_canceling_pickedup_reservation_error(
     get_compact_vehicle,
     get_gps_addon,
     get_premium_insurance_tier,
-    get_pickup_and_return_dates
+    get_pickup_and_return_dates,
 ):
     # Get pickup and return dates
     pickup_date, return_date = get_pickup_and_return_dates

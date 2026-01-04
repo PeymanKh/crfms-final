@@ -22,6 +22,7 @@ from schemas.entities import ReservationStatus
 from core import ReturnDateBeforePickupDateError
 
 if TYPE_CHECKING:
+    from core import ClockService
     from entities.user import Customer
     from entities.branch import Branch
     from entities.vehicle import Vehicle
@@ -45,6 +46,7 @@ class Reservation:
         pickup_date (date): Date when the vehicle will be picked up.
         return_date (date): Date when the vehicle will be returned.
         reservation_id (Optional[str]): ID of the reservation.
+        clock (Optional[ClockService]): Clock service used for time-based calculations.
 
     Raises:
         TypeError: If any parameter has an incorrect type.
@@ -65,8 +67,15 @@ class Reservation:
         reservation_id: Optional[str] = None,
         total_price: Optional[float] = None,
         invoice: Optional["Invoice"] = None,
+        clock: Optional["ClockService"] = None,
     ) -> None:
         """Constructor method for Reservation class"""
+
+        # Add dynamic clock service
+        from core import SystemClock
+
+        self._clock = clock or SystemClock()
+
         # Validate status
         if not isinstance(status, ReservationStatus):
             raise TypeError("status must be an instance of ReservationStatus enum.")
@@ -106,7 +115,7 @@ class Reservation:
             raise TypeError("return_date must be an instance of date class.")
         if pickup_date > return_date:
             raise ReturnDateBeforePickupDateError(return_date, pickup_date)
-        if pickup_date < date.today():
+        if pickup_date < self._clock.today():
             raise ValueError("pickup_date cannot be in the past.")
 
         # Validate addons
@@ -355,7 +364,7 @@ class Reservation:
             raise TypeError("pickup_date must be an instance of date class.")
         if pickup_date > self.__return_date:
             raise ReturnDateBeforePickupDateError(self.__return_date, pickup_date)
-        if pickup_date < date.today():
+        if pickup_date < self._clock.today():
             raise ValueError("pickup_date cannot be in the past.")
 
         self.__pickup_date = pickup_date

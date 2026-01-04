@@ -9,8 +9,6 @@ Author: Peyman Khodabandehlouei
 Date: 04-12-2025
 """
 
-from tests.conftest import get_agent_notification_subscriber
-
 
 def test_attach_and_detach_notification_subscribers(
     get_notification_manager,

@@ -19,6 +19,7 @@ from typing import Optional, List, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
+    from core import ClockService
     from entities.user import Customer
     from entities.vehicle import Vehicle
     from entities.pricing import Strategy
@@ -42,16 +43,25 @@ class PricingStrategy:
         TypeError: If customer is not an instance of Customer class.
     """
 
-    def __init__(self, customer: "Customer") -> None:
+    def __init__(
+        self, customer: "Customer", clock: Optional["ClockService"] = None
+    ) -> None:
         """
         Initialize the PricingContext with automatic strategy selection.
 
         Args:
             customer (Customer): The customer making the reservation.
+            clock (Optional[ClockService]): Optional clock service to use for time-based calculations.
 
         Raises:
             TypeError: If customer is not an instance of Customer class.
         """
+
+        # Add clock service
+        from core.clock_service import SystemClock
+
+        self._clock = clock or SystemClock()
+
         from entities.user import Customer
         from entities.pricing import (
             DailyStrategy,
@@ -93,6 +103,7 @@ class PricingStrategy:
 
         Args:
             strategy (Strategy): The new pricing strategy to use.
+            clock (Optional[ClockService]): Optional clock service to use for time-based calculations.
 
         Raises:
             TypeError: If strategy is not an instance of Strategy interface.
@@ -138,4 +149,5 @@ class PricingStrategy:
             pickup_date=pickup_date,
             return_date=return_date,
             add_ons=add_ons,
+            clock=self._clock,
         )

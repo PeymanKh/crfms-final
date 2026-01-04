@@ -20,6 +20,7 @@ from entities.pricing import Strategy
 
 
 if TYPE_CHECKING:
+    from core import ClockService
     from entities.vehicle import Vehicle
     from entities.reservation import AddOn, InsuranceTier
 
@@ -34,6 +35,7 @@ class DailyStrategy(Strategy):
         pickup_date: date,
         return_date: date,
         add_ons: Optional[List["AddOn"]] = None,
+        clock: Optional["ClockService"] = None,
     ) -> float:
         """
         Calculate the total price with no discount.
@@ -44,10 +46,15 @@ class DailyStrategy(Strategy):
             pickup_date (date): The rental pickup date.
             return_date (date): The rental return date.
             add_ons (Optional[List[AddOn]]): Optional list of add-ons.
+            clock (Optional[ClockService]): Optional clock service for time-based calculations.
 
         Returns:
             float: The total calculated price.
         """
+        from core.clock_service import SystemClock
+
+        clock = clock or SystemClock()
+
         # Validate vehicle
         from entities.vehicle import Vehicle
 
@@ -73,9 +80,7 @@ class DailyStrategy(Strategy):
         if return_date < pickup_date:
             raise ValueError("return_date must be after or equal to pickup_date.")
 
-        from datetime import date as date_class
-
-        if pickup_date < date_class.today():
+        if pickup_date < clock.today():
             raise ValueError("pickup_date cannot be in the past.")
 
         # Validate addons
@@ -118,6 +123,7 @@ class FirstOrderStrategy(Strategy):
         pickup_date: date,
         return_date: date,
         add_ons: Optional[List["AddOn"]] = None,
+        clock: Optional["ClockService"] = None,
     ) -> float:
         """
         Calculate the total price with 15% first order discount.
@@ -128,10 +134,15 @@ class FirstOrderStrategy(Strategy):
             pickup_date (date): The rental pickup date.
             return_date (date): The rental return date.
             add_ons (Optional[List[AddOn]]): Optional list of add-ons.
+            clock (Optional[ClockService]): Optional clock service for time-based calculations.
 
         Returns:
             float: The total calculated price with 15% discount applied.
         """
+        from core.clock_service import SystemClock
+
+        clock = clock or SystemClock()
+
         # Validate vehicle
         from entities.vehicle import Vehicle
 
@@ -157,9 +168,7 @@ class FirstOrderStrategy(Strategy):
         if return_date < pickup_date:
             raise ValueError("return_date must be after or equal to pickup_date.")
 
-        from datetime import date as date_class
-
-        if pickup_date < date_class.today():
+        if pickup_date < clock.today():
             raise ValueError("pickup_date cannot be in the past.")
 
         # Validate addons
@@ -205,6 +214,7 @@ class LoyaltyStrategy(Strategy):
         pickup_date: date,
         return_date: date,
         add_ons: Optional[List["AddOn"]] = None,
+        clock: Optional["ClockService"] = None,
     ) -> float:
         """
         Calculate the total price with 10% loyalty discount.
@@ -215,10 +225,15 @@ class LoyaltyStrategy(Strategy):
             pickup_date (date): The rental pickup date.
             return_date (date): The rental return date.
             add_ons (Optional[List[AddOn]]): Optional list of add-ons.
+            clock (Optional[ClockService]): Optional clock service for time-based calculations.
 
         Returns:
             float: The total calculated price with 10% discount applied.
         """
+        from core.clock_service import SystemClock
+
+        clock = clock or SystemClock()
+
         # Validate vehicle
         from entities.vehicle import Vehicle
 
@@ -244,9 +259,7 @@ class LoyaltyStrategy(Strategy):
         if return_date < pickup_date:
             raise ValueError("return_date must be after or equal to pickup_date.")
 
-        from datetime import date as date_class
-
-        if pickup_date < date_class.today():
+        if pickup_date < clock.today():
             raise ValueError("pickup_date cannot be in the past.")
 
         # Validate addons

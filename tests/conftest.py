@@ -3,6 +3,9 @@ Fixed instances for testing
 
 This module defines reusable pytest fixtures that provide ready to use objects for testing.
 Here is a list of the available fixtures:
+
+- Fake clock: Returns a FakeClock instance.
+
 - Branch and users:
     - get_main_branch: Returns a main Branch instance.
     - get_customer: Returns a sample Customer.
@@ -50,12 +53,18 @@ Date: 01-12-2025
 import pytest
 from datetime import date, datetime, timedelta
 
+from core.clock_service import FakeClock
+
 from entities.branch import Branch
 from entities.user import Agent, Manager, Customer
 from entities.vehicle import Vehicle, VehicleClass
 from entities.reservation import AddOn, InsuranceTier
 from entities.payment import CreditCardPaymentCreator, PaypalPaymentCreator
-from entities.notification import ConcreteNotificationManager, AgentSubscriber, CustomerSubscriber
+from entities.notification import (
+    ConcreteNotificationManager,
+    AgentSubscriber,
+    CustomerSubscriber,
+)
 
 from schemas.entities import Gender, EmploymentType, VehicleStatus
 
@@ -429,9 +438,15 @@ def get_premium_insurance_tier() -> InsuranceTier:
     )
 
 
+@pytest.fixture
+def fake_clock() -> FakeClock:
+    """Returns a fake clock set to a known time"""
+    return FakeClock(datetime(2026, 1, 10, 9, 0, 0))  # Jan 10, 2026, 9 AM
+
 
 @pytest.fixture
-def get_pickup_and_return_dates(interval_days: int = 3) -> tuple[datetime, datetime]:
-    pickup_date = date.today() + timedelta(days=1)
-    return_date = pickup_date + timedelta(days=interval_days)
+def get_pickup_and_return_dates(fake_clock) -> tuple[date, date]:
+    """Returns pickup and return dates using our fake clock"""
+    pickup_date = fake_clock.today() + timedelta(days=1)
+    return_date = pickup_date + timedelta(days=3)
     return pickup_date, return_date

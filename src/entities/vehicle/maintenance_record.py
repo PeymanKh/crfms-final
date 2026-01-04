@@ -17,6 +17,7 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
+    from core import ClockService
     from entities.vehicle import Vehicle
 
 
@@ -30,7 +31,7 @@ class MaintenanceRecord:
         record_id (Optional[str]): Explicit id (used e.g. for persistence).
         service_date (Optional[date]): Explicit service date; defaults to today.
         odometer (Optional[int | float]): Explicit odometer; defaults to vehicle.odometer.
-
+        clock (Optional[ClockService]): Clock service for time-based calculations.
     Raises:
         TypeError: If vehicle is not a Vehicle instance, or note is not a string.
     """
@@ -42,6 +43,7 @@ class MaintenanceRecord:
         record_id: Optional[str] = None,
         service_date: Optional[date] = None,
         odometer: Optional[int] = None,
+        clock: Optional["ClockService"] = None,
     ):
         from entities.vehicle import Vehicle  # avoid circular import
 
@@ -68,9 +70,16 @@ class MaintenanceRecord:
             raise TypeError("odometer must be a number.")
 
         # Assign values
+        # Add dynamic clock service
+        from core import SystemClock
+
+        self._clock = clock or SystemClock()
+
         self.__id = record_id if record_id is not None else str(uuid.uuid4())
         self.__vehicle = vehicle
-        self.__service_date = service_date if service_date is not None else date.today()
+        self.__service_date = (
+            service_date if service_date is not None else self._clock.today()
+        )
         self.__odometer = odometer if odometer is not None else self.__vehicle.odometer
         self.__note = note
 
@@ -127,7 +136,7 @@ class MaintenanceRecord:
             raise TypeError("service_date must be a date object, not datetime")
         if not isinstance(service_date, date):
             raise TypeError("service_date must be a date object")
-        if service_date > date.today():
+        if service_date > self._clock.today():
             raise ValueError("service_date can not be in the future")
 
         # Logic
