@@ -15,7 +15,7 @@ from pymongo.errors import DuplicateKeyError
 from schemas.domain import VehicleStatus
 from services.vehicle_service import vehicle_service
 from schemas.api.common import SuccessResponseWithPayload, ErrorResponse
-from schemas.api.requests.vehicles import (
+from schemas.api.requests import (
     CreateVehicleRequest,
     UpdateVehicleRequest,
     VehicleFilterRequest,

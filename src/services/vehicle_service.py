@@ -15,12 +15,12 @@ from pymongo.errors import DuplicateKeyError
 
 from core.database_manager import db_manager
 from schemas.db_models.vehicle_models import VehicleDocument
-from schemas.api.requests.vehicles import (
+from schemas.api.requests import (
     CreateVehicleRequest,
     UpdateVehicleRequest,
     VehicleFilterRequest,
 )
-from schemas.api.responses.vehicles import VehicleData, VehicleListData
+from schemas.api.responses import VehicleData, VehicleListData
 
 logger = logging.getLogger(__name__)
 

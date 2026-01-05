@@ -37,7 +37,12 @@ from motor.motor_asyncio import (
 )
 
 from core import config
-from schemas.db_models import CustomerDocument, EmployeeDocument, VehicleDocument
+from schemas.db_models import (
+    CustomerDocument,
+    EmployeeDocument,
+    VehicleDocument,
+    BranchDocument,
+)
 
 
 # Logger
@@ -463,6 +468,200 @@ class DatabaseManager:
         cursor = collection.find(filters).sort("created_at", -1)
         vehicles = await cursor.to_list(length=None)
         return vehicles
+
+    async def create_branch(self, branch_data: BranchDocument) -> str:
+        """
+        Create a new branch in the database.
+
+        Args:
+            branch_data (BranchDocument): Branch Pydantic model with validated data.
+
+        Returns:
+            str: The created branch ID
+
+        Raises:
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("branches")
+
+            # Convert Pydantic model to dict for MongoDB
+            branch_dict = branch_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(branch_dict)
+            logger.info(f"Created branch with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except Exception as e:
+            logger.error(f"Failed to create branch: {e}")
+            raise
+
+    async def find_branch_by_id(self, branch_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a branch by ID.
+
+        Args:
+            branch_id (str): Branch's unique identifier
+
+        Returns:
+            Optional[Dict[str, Any]]: Branch document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("branches")
+        return await collection.find_one({"_id": branch_id})
+
+    async def find_branches(
+        self, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find branches with optional filters.
+
+        Args:
+            filters (Optional[Dict[str, Any]]): MongoDB query filters
+
+        Returns:
+            List[Dict[str, Any]]: List of branch documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("branches")
+
+        if filters is None:
+            filters = {}
+
+        cursor = collection.find(filters).sort("created_at", -1)
+        branches = await cursor.to_list(length=None)
+        return branches
+
+    async def update_branch(self, branch_id: str, update_data: Dict[str, Any]) -> bool:
+        """
+        Update branch information.
+
+        Args:
+            branch_id (str): Branch ID to update
+            update_data (Dict[str, Any]): Fields to update
+
+        Returns:
+            bool: True if branch was updated, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("branches")
+
+            # Add updated_at timestamp
+            update_data["updated_at"] = datetime.now(timezone.utc)
+
+            result = await collection.update_one(
+                {"_id": branch_id}, {"$set": update_data}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Updated branch: {branch_id}")
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to update branch: {e}")
+            raise
+
+    async def delete_branch(self, branch_id: str) -> bool:
+        """
+        Delete a branch from the database.
+
+        Args:
+            branch_id (str): Branch ID to delete
+
+        Returns:
+            bool: True if branch was deleted, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("branches")
+        result = await collection.delete_one({"_id": branch_id})
+
+        if result.deleted_count > 0:
+            logger.info(f"Deleted branch: {branch_id}")
+            return True
+        return False
+
+    async def add_employee_to_branch(self, branch_id: str, employee_id: str) -> bool:
+        """
+        Add an employee ID to a branch's employee_ids list.
+
+        Args:
+            branch_id (str): Branch ID
+            employee_id (str): Employee ID to add
+
+        Returns:
+            bool: True if employee was added, False if branch not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("branches")
+
+            result = await collection.update_one(
+                {"_id": branch_id},
+                {
+                    "$addToSet": {"employee_ids": employee_id},  # Prevents duplicates
+                    "$set": {"updated_at": datetime.now(timezone.utc)},
+                },
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Added employee {employee_id} to branch {branch_id}")
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to add employee to branch: {e}")
+            raise
+
+    async def remove_employee_from_branch(
+        self, branch_id: str, employee_id: str
+    ) -> bool:
+        """
+        Remove an employee ID from a branch's employee_ids list.
+
+        Args:
+            branch_id (str): Branch ID
+            employee_id (str): Employee ID to remove
+
+        Returns:
+            bool: True if employee was removed, False if branch not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("branches")
+
+            result = await collection.update_one(
+                {"_id": branch_id},
+                {
+                    "$pull": {"employee_ids": employee_id},  # Remove from array
+                    "$set": {"updated_at": datetime.now(timezone.utc)},
+                },
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Removed employee {employee_id} from branch {branch_id}")
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to remove employee from branch: {e}")
+            raise
 
 
 # Create singleton instance

@@ -26,7 +26,7 @@ class VehicleDocument(BaseModel):
         mileage (float): Current odometer reading in kilometers.
         branch_id (str): Branch where vehicle is located (indexed).
         status (str): Vehicle status (available/reserved/rented/maintenance).
-        created_at (datetime): When vehicle was added to system.
+        created_at (datetime): When vehicle was added to the system.
         updated_at (datetime): Last modification timestamp.
     """
 

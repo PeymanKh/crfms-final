@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 from schemas.domain import VehicleStatus
 
 
-# Define allowed vehicle classes
+# Allowed VehicleClasses
 VehicleClassType = Literal["economy", "compact", "suv"]
 
 
