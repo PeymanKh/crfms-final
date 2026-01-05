@@ -55,12 +55,12 @@ from datetime import date, datetime, timedelta
 
 from core.clock_service import FakeClock
 
-from entities.branch import Branch
-from entities.user import Agent, Manager, Customer
-from entities.vehicle import Vehicle, VehicleClass
-from entities.reservation import AddOn, InsuranceTier
-from entities.payment import CreditCardPaymentCreator, PaypalPaymentCreator
-from entities.notification import (
+from domain.branch import Branch
+from domain.user import Agent, Manager, Customer
+from domain.vehicle import Vehicle, VehicleClass
+from domain.reservation import AddOn, InsuranceTier
+from domain.payment import CreditCardPaymentCreator, PaypalPaymentCreator
+from domain.notification import (
     ConcreteNotificationManager,
     AgentSubscriber,
     CustomerSubscriber,
@@ -456,7 +456,7 @@ def get_reservation(
         - Dates: From fake_clock (3-day rental)
         - Status: PENDING
     """
-    from entities.reservation import Reservation
+    from domain.reservation import Reservation
     from schemas.entities import ReservationStatus
 
     pickup_date, return_date = get_pickup_and_return_dates
@@ -507,7 +507,7 @@ def get_rental(
         - Pickup readings: odometer=12500, fuel=0.8
         - Clock: Fake clock
     """
-    from entities.rental import Rental
+    from domain.rental import Rental
 
     pickup_reading = get_rental_reading_factory(odometer=12500.0, fuel_level=0.8)
 

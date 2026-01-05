@@ -1,5 +1,5 @@
 """
-Pydantic models used by application entities.
+Pydantic models used by application domain.
 
 Author: Peyman Khodabandehlouei
 """
