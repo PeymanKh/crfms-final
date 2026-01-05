@@ -121,8 +121,6 @@ class AgentRegistrationRequest(BaseModel):
     """
     Request body for agent registration.
 
-    Note: This endpoint should be admin-only in production.
-
     Business Rules:
         - User must be at least 18 years old
         - An employment type is required for agents
@@ -234,8 +232,6 @@ class AgentRegistrationRequest(BaseModel):
 class ManagerRegistrationRequest(BaseModel):
     """
     Request body for manager registration.
-
-    Note: This endpoint should be admin-only in production.
 
     Business Rules:
         - User must be at least 18 years old

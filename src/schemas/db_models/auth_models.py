@@ -9,7 +9,7 @@ Date: 05-01-2026
 
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 
 
 class CustomerDocument(BaseModel):
@@ -86,15 +86,3 @@ class EmployeeDocument(BaseModel):
     branch_id: str
     created_at: datetime
     updated_at: Optional[datetime] = None
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "indexes": [
-                {"keys": [("email", 1)], "unique": True},
-                {"keys": [("branch_id", 1)]},
-                {"keys": [("role", 1)]},
-                {"keys": [("created_at", -1)]},
-            ]
-        },
-    )

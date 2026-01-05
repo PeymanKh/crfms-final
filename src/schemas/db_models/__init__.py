@@ -4,6 +4,7 @@ Author: Peyman Khodabandehlouei
 """
 
 # Import modules
+from schemas.db_models.vehicle_models import VehicleDocument
 from schemas.db_models.auth_models import CustomerDocument, EmployeeDocument
 
 
@@ -11,4 +12,5 @@ from schemas.db_models.auth_models import CustomerDocument, EmployeeDocument
 __all__ = [
     "CustomerDocument",
     "EmployeeDocument",
+    "VehicleDocument",
 ]

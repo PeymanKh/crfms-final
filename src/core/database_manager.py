@@ -21,8 +21,9 @@ Last Update: 28-12-2025
 
 import asyncio
 import logging
-from typing import Optional, Dict, Any
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
+from typing import Optional, Dict, Any, List
 
 from pymongo.errors import (
     ConnectionFailure,
@@ -36,7 +37,7 @@ from motor.motor_asyncio import (
 )
 
 from core import config
-from schemas.db_models import CustomerDocument, EmployeeDocument
+from schemas.db_models import CustomerDocument, EmployeeDocument, VehicleDocument
 
 
 # Logger
@@ -304,6 +305,164 @@ class DatabaseManager:
 
         collection = self.get_collection("employees")
         return await collection.find_one({"email": email})
+
+    async def create_vehicle(self, vehicle_data: VehicleDocument) -> str:
+        """
+        Create a new vehicle in the database.
+
+        Args:
+            vehicle_data (VehicleDocument): Vehicle Pydantic model with validated data.
+
+        Returns:
+            str: The created vehicle ID
+
+        Raises:
+            DuplicateKeyError: If plate_number already exists
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("vehicles")
+
+            # Convert Pydantic model to dict for MongoDB
+            vehicle_dict = vehicle_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(vehicle_dict)
+            logger.info(f"Created vehicle with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except DuplicateKeyError:
+            logger.warning(f"Duplicate plate number: {vehicle_data.plate_number}")
+            raise
+
+        except Exception as e:
+            logger.error(f"Failed to create vehicle: {e}")
+            raise
+
+    async def find_vehicle_by_id(self, vehicle_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a vehicle by ID.
+
+        Args:
+            vehicle_id (str): Vehicle's unique identifier
+
+        Returns:
+            Optional[Dict[str, Any]]: Vehicle document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("vehicles")
+        return await collection.find_one({"_id": vehicle_id})
+
+    async def find_vehicle_by_plate(
+        self, plate_number: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Find a vehicle by plate number.
+
+        Args:
+            plate_number (str): Vehicle's plate number
+
+        Returns:
+            Optional[Dict[str, Any]]: Vehicle document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("vehicles")
+        return await collection.find_one({"plate_number": plate_number})
+
+    async def update_vehicle(
+        self, vehicle_id: str, update_data: Dict[str, Any]
+    ) -> bool:
+        """
+        Update vehicle information.
+
+        Args:
+            vehicle_id (str): Vehicle ID to update
+            update_data (Dict[str, Any]): Fields to update
+
+        Returns:
+            bool: True if vehicle was updated, False if not found
+
+        Raises:
+            DuplicateKeyError: If updating plate_number to existing value
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("vehicles")
+
+            # Add updated_at timestamp
+            update_data["updated_at"] = datetime.now(timezone.utc)
+
+            result = await collection.update_one(
+                {"_id": vehicle_id}, {"$set": update_data}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Updated vehicle: {vehicle_id}")
+                return True
+            return False
+
+        except DuplicateKeyError:
+            logger.warning(
+                f"Duplicate plate number in update: {update_data.get('plate_number')}"
+            )
+            raise
+
+        except Exception as e:
+            logger.error(f"Failed to update vehicle: {e}")
+            raise
+
+    async def delete_vehicle(self, vehicle_id: str) -> bool:
+        """
+        Delete a vehicle from the database.
+
+        Args:
+            vehicle_id (str): Vehicle ID to delete
+
+        Returns:
+            bool: True if vehicle was deleted, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("vehicles")
+        result = await collection.delete_one({"_id": vehicle_id})
+
+        if result.deleted_count > 0:
+            logger.info(f"Deleted vehicle: {vehicle_id}")
+            return True
+        return False
+
+    async def find_vehicles(
+        self, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find vehicles with optional filters.
+
+        Args:
+            filters (Optional[Dict[str, Any]]): MongoDB query filters
+
+        Returns:
+            List[Dict[str, Any]]: List of vehicle documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("vehicles")
+
+        if filters is None:
+            filters = {}
+
+        cursor = collection.find(filters).sort("created_at", -1)
+        vehicles = await cursor.to_list(length=None)
+        return vehicles
 
 
 # Create singleton instance
