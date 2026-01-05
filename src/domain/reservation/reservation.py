@@ -18,7 +18,7 @@ import uuid
 from datetime import date
 from typing import Optional, TYPE_CHECKING
 
-from schemas.entities import ReservationStatus
+from schemas.domain import ReservationStatus
 from core import ReturnDateBeforePickupDateError
 
 if TYPE_CHECKING:

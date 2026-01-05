@@ -12,7 +12,7 @@ Date: 07-11-2025
 
 import uuid
 from typing import List, Optional, TYPE_CHECKING
-from schemas.entities import VehicleStatus
+from schemas.domain import VehicleStatus
 
 
 if TYPE_CHECKING:

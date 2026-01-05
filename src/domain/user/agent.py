@@ -10,7 +10,7 @@ from datetime import date
 from typing import Any, Optional, TYPE_CHECKING
 
 from domain.user import Employee
-from schemas.entities import Gender, EmploymentType, VehicleStatus, ReservationStatus
+from schemas.domain import Gender, EmploymentType, VehicleStatus, ReservationStatus
 
 if TYPE_CHECKING:
     from domain.branch import Branch

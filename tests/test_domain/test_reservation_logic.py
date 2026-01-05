@@ -18,7 +18,7 @@ Date: 02-12-2025
 
 import pytest
 
-from schemas.entities import VehicleStatus, ReservationStatus
+from schemas.domain import VehicleStatus, ReservationStatus
 from core import (
     ReturnDateBeforePickupDateError,
     VehicleNotAvailableError,

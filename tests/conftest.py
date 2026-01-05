@@ -66,7 +66,7 @@ from domain.notification import (
     CustomerSubscriber,
 )
 
-from schemas.entities import Gender, EmploymentType, VehicleStatus
+from schemas.domain import Gender, EmploymentType, VehicleStatus
 
 
 @pytest.fixture
@@ -457,7 +457,7 @@ def get_reservation(
         - Status: PENDING
     """
     from domain.reservation import Reservation
-    from schemas.entities import ReservationStatus
+    from schemas.domain import ReservationStatus
 
     pickup_date, return_date = get_pickup_and_return_dates
 
@@ -482,7 +482,7 @@ def get_rental_reading_factory(fake_clock):
     Usage:
         reading = get_rental_reading_factory(odometer=12500, fuel_level=0.8)
     """
-    from schemas.entities import RentalReading
+    from schemas.domain import RentalReading
 
     def _create_reading(odometer: float, fuel_level: float) -> RentalReading:
         return RentalReading(

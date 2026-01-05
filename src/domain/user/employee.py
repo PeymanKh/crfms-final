@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
 
 from domain.user import BaseUser
-from schemas.entities import Gender, EmploymentType
+from schemas.domain import Gender, EmploymentType
 
 if TYPE_CHECKING:
     from domain.branch import Branch

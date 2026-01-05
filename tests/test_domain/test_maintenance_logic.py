@@ -11,7 +11,7 @@ Date: 04-12-2025
 
 import pytest
 
-from schemas.entities import VehicleStatus
+from schemas.domain import VehicleStatus
 from core import VehicleNotAvailableError
 
 

@@ -23,7 +23,7 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from core import ClockService
     from domain.reservation import Reservation
-    from schemas.entities import RentalCharges, RentalReading
+    from schemas.domain import RentalCharges, RentalReading
 
 # Business rule constants
 LATE_FEE_PER_HOUR = 10.0
@@ -74,7 +74,7 @@ class Rental:
             raise ValueError("pickup_token cannot be empty")
 
         # Validate pickup_readings
-        from schemas.entities import RentalReading
+        from schemas.domain import RentalReading
 
         if not isinstance(pickup_readings, RentalReading):
             raise TypeError("pickup_readings must be an instance of RentalReading")
@@ -180,7 +180,7 @@ class Rental:
             ValueError: If rental already returned or damage charge is negative.
         """
         # Validate return_readings
-        from schemas.entities import RentalReading, RentalCharges
+        from schemas.domain import RentalReading, RentalCharges
 
         if not isinstance(return_readings, RentalReading):
             raise TypeError("return_readings must be an instance of RentalReading")

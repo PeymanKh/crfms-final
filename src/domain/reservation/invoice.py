@@ -12,7 +12,7 @@ Date: 07-11-2025
 
 import uuid
 from datetime import date
-from schemas.entities import InvoiceStatus
+from schemas.domain import InvoiceStatus
 from typing import TYPE_CHECKING, Optional
 
 

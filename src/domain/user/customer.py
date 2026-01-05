@@ -14,7 +14,7 @@ from datetime import date
 from typing import Any, Optional, List, TYPE_CHECKING
 
 from domain.user import BaseUser
-from schemas.entities import Gender, ReservationStatus, VehicleStatus, InvoiceStatus
+from schemas.domain import Gender, ReservationStatus, VehicleStatus, InvoiceStatus
 from core import (
     VehicleNotAvailableError,
     ReservationNotFoundError,
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from domain.rental import Rental
     from domain.branch import Branch
     from domain.vehicle import Vehicle
-    from schemas.entities import RentalCharges
+    from schemas.domain import RentalCharges
     from domain.reservation import AddOn, Reservation, InsuranceTier
 
 
@@ -258,7 +258,7 @@ class Customer(BaseUser):
         """
         from core.clock_service import SystemClock
         from domain.rental import Rental
-        from schemas.entities import RentalReading
+        from schemas.domain import RentalReading
 
         clock = clock or SystemClock()
 
@@ -363,7 +363,7 @@ class Customer(BaseUser):
             ValueError: If reservation not found, not picked up, or already returned.
         """
         from core.clock_service import SystemClock
-        from schemas.entities import RentalReading
+        from schemas.domain import RentalReading
 
         clock = clock or SystemClock()
 

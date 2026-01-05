@@ -4,8 +4,8 @@ Author: Peyman Khodabandehlouei
 """
 
 # Import modules
-from schemas.entities.schemas import RentalCharges, RentalReading
-from schemas.entities.enums import (
+from schemas.domain.schemas import RentalCharges, RentalReading
+from schemas.domain.enums import (
     Gender,
     EmploymentType,
     VehicleStatus,

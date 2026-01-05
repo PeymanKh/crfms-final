@@ -16,7 +16,7 @@ from datetime import date
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from schemas.entities import Gender
+from schemas.domain import Gender
 
 
 class BaseUser(ABC):
