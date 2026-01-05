@@ -9,7 +9,8 @@ Last Update: 28-12-2025
 """
 
 from api.routes.health import router as health_router
+from api.routes.auth import router as auth_router
 
 
 # Public API
-__all__ = ["health_router"]
+__all__ = ["health_router", "auth_router"]

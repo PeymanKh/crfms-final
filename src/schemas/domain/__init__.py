@@ -1,5 +1,6 @@
 """
 This module provides public API for application's entity schemas.
+
 Author: Peyman Khodabandehlouei
 """
 

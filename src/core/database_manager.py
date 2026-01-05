@@ -21,10 +21,14 @@ Last Update: 28-12-2025
 
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from contextlib import asynccontextmanager
 
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import (
+    ConnectionFailure,
+    ServerSelectionTimeoutError,
+    DuplicateKeyError,
+)
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
     AsyncIOMotorDatabase,
@@ -32,6 +36,7 @@ from motor.motor_asyncio import (
 )
 
 from core import config
+from schemas.db_models import CustomerDocument, EmployeeDocument
 
 
 # Logger
@@ -82,6 +87,7 @@ class DatabaseManager:
             # Double check connection after acquiring lock
             if self._is_connected:
                 logger.debug("Database already connected, skipping reconnection")
+                return
 
             try:
                 db_uri = config.database.uri.get_secret_value()
@@ -196,6 +202,108 @@ class DatabaseManager:
             )
 
         return self._database[collection_name]
+
+    async def create_customer(self, customer_data: CustomerDocument) -> str:
+        """
+        Create a new customer in the database.
+
+        Args:
+            customer_data (CustomerDocument): Customer Pydantic model with validated data.
+
+        Returns:
+            str: The created customer ID
+
+        Raises:
+            DuplicateKeyError: If email already exists
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("customers")
+
+            # Convert Pydantic model to dict for MongoDB
+            customer_dict = customer_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(customer_dict)
+            logger.info(f"Created customer with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except DuplicateKeyError:
+            logger.warning(f"Duplicate email: {customer_data.email}")
+            raise
+
+        except Exception as e:
+            logger.error(f"Failed to create customer: {e}")
+            raise
+
+    async def create_employee(self, employee_data: EmployeeDocument) -> str:
+        """
+        Create a new employee (agent or manager) in the database.
+
+        Args:
+            employee_data (EmployeeDocument): Employee Pydantic model with validated data.
+
+        Returns:
+            str: The created employee ID
+
+        Raises:
+            DuplicateKeyError: If email already exists
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("employees")
+
+            # Convert Pydantic model to dict
+            employee_dict = employee_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(employee_dict)
+            logger.info(f"Created employee with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except DuplicateKeyError:
+            logger.warning(f"Duplicate email: {employee_data.email}")
+            raise
+
+        except Exception as e:
+            logger.error(f"Failed to create employee: {e}")
+            raise
+
+    async def find_customer_by_id(self, customer_id: str) -> Optional[Dict[str, Any]]:
+        """Find customer by ID"""
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("customers")
+        return await collection.find_one({"_id": customer_id})
+
+    async def find_customer_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Find customer by email"""
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("customers")
+        return await collection.find_one({"email": email})
+
+    async def find_employee_by_id(self, employee_id: str) -> Optional[Dict[str, Any]]:
+        """Find employee by ID"""
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("employees")
+        return await collection.find_one({"_id": employee_id})
+
+    async def find_employee_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Find employee by email - for login/duplicate check"""
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("employees")
+        return await collection.find_one({"email": email})
 
 
 # Create singleton instance

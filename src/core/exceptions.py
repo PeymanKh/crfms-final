@@ -44,3 +44,10 @@ class ApplicationShutdownError(Exception):
 
     def __init__(self, message: str):
         super().__init__(f"Error during application shutdown: {message}")
+
+
+class DuplicateEmailError(Exception):
+    def __init__(self, email: str):
+        super().__init__(
+            f"Email {email} is already registered. Please choose another email."
+        )

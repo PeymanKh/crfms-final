@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import health_router
+from api.routes import health_router, auth_router
 
 from core import (
     SystemClock,
@@ -95,6 +95,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health_router)
+app.include_router(auth_router)
 
 if __name__ == "__main__":
     import uvicorn

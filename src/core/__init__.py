@@ -24,6 +24,7 @@ from core.exceptions import (
     VehicleNotAvailableError,
     ApplicationStartUpError,
     ApplicationShutdownError,
+    DuplicateEmailError,
 )
 
 # Public API
@@ -38,6 +39,7 @@ __all__ = [
     "SystemClock",
     "ClockService",
     # Exceptions
+    "DuplicateEmailError",
     "ApplicationStartUpError",
     "ApplicationShutdownError",
     "ReservationNotFoundError",
