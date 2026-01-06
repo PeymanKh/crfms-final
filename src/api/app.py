@@ -19,6 +19,7 @@ from api.routes import (
     add_ons_router,
     insurance_tiers_router,
     reservation_router,
+    payment_router,
 )
 
 from core import (
@@ -109,6 +110,7 @@ app.include_router(branch_router)
 app.include_router(add_ons_router)
 app.include_router(insurance_tiers_router)
 app.include_router(reservation_router)
+app.include_router(payment_router)
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ Last Update: 28-12-2025
 
 import asyncio
 import logging
-from datetime import date
+from datetime import date, time
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any, List
@@ -1137,12 +1137,16 @@ class DatabaseManager:
         try:
             collection = self.get_collection("reservations")
 
+            # Convert date to datetime at start of day
+            pickup_datetime = datetime.combine(pickup_date, time.min)
+            return_datetime = datetime.combine(return_date, time.max)
+
             # Build query to find overlapping reservations
             query = {
                 "vehicle_id": vehicle_id,
                 "status": {"$in": ["pending", "confirmed"]},  # Only active reservations
-                "pickup_date": {"$lte": return_date},  # Starts before/on our return
-                "return_date": {"$gte": pickup_date},  # Ends after/on our pickup
+                "pickup_date": {"$lte": return_datetime},
+                "return_date": {"$gte": pickup_datetime},
             }
 
             # Exclude specific reservation (for updates)
@@ -1203,14 +1207,18 @@ class DatabaseManager:
             await self.connect()
 
         collection = self.get_collection("reservations")
-
         query = {}
+
         if pickup_date_from or pickup_date_to:
             query["pickup_date"] = {}
             if pickup_date_from:
-                query["pickup_date"]["$gte"] = pickup_date_from
+                query["pickup_date"]["$gte"] = datetime.combine(
+                    pickup_date_from, time.min
+                )
             if pickup_date_to:
-                query["pickup_date"]["$lte"] = pickup_date_to
+                query["pickup_date"]["$lte"] = datetime.combine(
+                    pickup_date_to, time.max
+                )
 
         cursor = collection.find(query).sort("pickup_date", 1)
         reservations = await cursor.to_list(length=None)

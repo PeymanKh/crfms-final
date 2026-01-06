@@ -39,13 +39,13 @@ class InvoiceDocument(BaseModel):
     Attributes:
         id (str): Invoice unique identifier.
         status (str): Payment status (pending/completed/failed).
-        date (date): Invoice creation date.
+        issued_date (date): Invoice creation date.
         total_price (float): Invoice amount (same as reservation total).
     """
 
     id: str
     status: str  # pending/completed/failed
-    date: date
+    issued_date: date
     total_price: float
 
     model_config = ConfigDict(populate_by_name=True)

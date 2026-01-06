@@ -29,6 +29,9 @@ from schemas.api.responses.reservations import (
     InvoiceData,
 )
 
+# Import payment schemas
+from schemas.api.responses.payments import PaymentData
+
 
 # Public API
 __all__ = [
@@ -52,4 +55,6 @@ __all__ = [
     "ReservationListData",
     "ReservationAddOnData",
     "InvoiceData",
+    # payment schemas
+    "PaymentData",
 ]

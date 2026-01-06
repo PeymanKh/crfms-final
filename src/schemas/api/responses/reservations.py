@@ -43,7 +43,7 @@ class InvoiceData(BaseModel):
 
     id: str = Field(..., description="Invoice ID")
     status: str = Field(..., description="Invoice status (pending/completed/failed)")
-    date: date = Field(..., description="Invoice date")
+    issued_date: date = Field(..., description="Invoice date")
     total_price: float = Field(..., description="Invoice total price")
 
     model_config = ConfigDict(
@@ -52,7 +52,7 @@ class InvoiceData(BaseModel):
             "example": {
                 "id": "invoice-uuid-abc",
                 "status": "pending",
-                "date": "2026-01-06",
+                "issued_date": "2026-01-06",
                 "total_price": 252.0,
             }
         },
@@ -132,7 +132,7 @@ class ReservationData(BaseModel):
                 "invoice": {
                     "id": "invoice-uuid-abc",
                     "status": "pending",
-                    "date": "2026-01-06",
+                    "issued_date": "2026-01-06",
                     "total_price": 252.0,
                 },
                 "created_at": "2026-01-06T08:00:00Z",

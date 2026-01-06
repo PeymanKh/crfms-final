@@ -216,7 +216,7 @@ class ReservationService:
         invoice_doc = InvoiceDocument(
             id=str(uuid.uuid4()),
             status="pending",
-            date=current_time.date(),
+            issued_date=current_time.date(),
             total_price=total_price,
         )
 
@@ -314,7 +314,7 @@ class ReservationService:
             invoice=InvoiceData(
                 id=reservation_doc["invoice"]["id"],
                 status=reservation_doc["invoice"]["status"],
-                date=reservation_doc["invoice"]["date"],
+                issued_date=reservation_doc["invoice"]["issued_date"],
                 total_price=reservation_doc["invoice"]["total_price"],
             ),
             created_at=reservation_doc["created_at"],
@@ -580,7 +580,7 @@ class ReservationService:
                 invoice=InvoiceData(
                     id=doc["invoice"]["id"],
                     status=doc["invoice"]["status"],
-                    date=doc["invoice"]["date"],
+                    issued_date=doc["invoice"]["issued_date"],
                     total_price=doc["invoice"]["total_price"],
                 ),
                 created_at=doc["created_at"],

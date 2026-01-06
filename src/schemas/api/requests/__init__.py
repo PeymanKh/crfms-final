@@ -37,6 +37,14 @@ from schemas.api.requests.reservations import (
     ReservationFilterRequest,
 )
 
+# Import payment schemas
+from schemas.api.requests.payments import (
+    CreditCardPaymentDetails,
+    PayPalPaymentDetails,
+    ProcessPaymentRequest,
+)
+
+
 # Public API
 __all__ = [
     # auth schemas
@@ -61,4 +69,8 @@ __all__ = [
     "CreateReservationRequest",
     "UpdateReservationRequest",
     "ReservationFilterRequest",
+    # payment schemas
+    "CreditCardPaymentDetails",
+    "PayPalPaymentDetails",
+    "ProcessPaymentRequest",
 ]

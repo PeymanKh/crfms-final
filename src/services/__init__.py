@@ -21,6 +21,8 @@ from services.insurance_tier_service import insurance_tier_service
 # Import reservation service
 from services.reservation_service import reservation_service
 
+# Import payment service
+from services.payment_service import payment_service
 
 # Public API
 __all__ = [
@@ -30,4 +32,5 @@ __all__ = [
     "add_on_service",
     "insurance_tier_service",
     "reservation_service",
+    "payment_service",
 ]
