@@ -11,7 +11,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import health_router, auth_router, vehicle_router, branch_router
+from api.routes import (
+    health_router,
+    auth_router,
+    vehicle_router,
+    branch_router,
+    add_ons_router,
+    insurance_tiers_router,
+)
 
 from core import (
     SystemClock,
@@ -98,6 +105,8 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(vehicle_router)
 app.include_router(branch_router)
+app.include_router(add_ons_router)
+app.include_router(insurance_tiers_router)
 
 
 if __name__ == "__main__":

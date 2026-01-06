@@ -1,7 +1,7 @@
 """
-Branch Routes
+Add-on Routes
 
-Handles HTTP endpoints for branch management (CRUD operations).
+Handles HTTP endpoints for add-on management (CRUD operations).
 
 Author: Peyman Khodabandehlouei
 Date: 05-01-2026
@@ -10,9 +10,12 @@ Date: 05-01-2026
 import logging
 from fastapi import APIRouter, status, HTTPException
 
-from services import branch_service
-from schemas.api import SuccessResponseWithPayload, ErrorResponse
-from schemas.api.requests import CreateBranchRequest, UpdateBranchRequest
+from services import add_on_service
+from schemas.api.common import SuccessResponseWithPayload, ErrorResponse
+from schemas.api.requests import (
+    CreateAddOnRequest,
+    UpdateAddOnRequest,
+)
 
 
 # Logger
@@ -20,17 +23,17 @@ logger = logging.getLogger(__name__)
 
 
 # Create router
-router = APIRouter(prefix="/api/v1/branches", tags=["Branches"])
+router = APIRouter(prefix="/api/v1/add-ons", tags=["Add-ons"])
 
 
 @router.post(
     "",
     response_model=SuccessResponseWithPayload,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new branch",
+    summary="Create a new add-on",
     responses={
         201: {
-            "description": "Branch created successfully",
+            "description": "Add-on created successfully",
             "model": SuccessResponseWithPayload,
         },
         422: {
@@ -39,28 +42,33 @@ router = APIRouter(prefix="/api/v1/branches", tags=["Branches"])
         },
     },
 )
-async def create_branch(request: CreateBranchRequest) -> SuccessResponseWithPayload:
+async def create_add_on(request: CreateAddOnRequest) -> SuccessResponseWithPayload:
     """
-    Create a new branch in the system.
+    Create a new add-on in the system.
+
+    **Note:** In production, this endpoint should be restricted to manager users only.
+
+    Add-ons represent additional services customers can add to their reservations
+    (e.g., GPS Navigation, Child Seat, Additional Driver).
 
     Business Rules:
-        - Branch name must be at least 2 characters
-        - City must be at least 2 characters
-        - Phone number must be between 10-20 characters
+        - Name must be at least 2 characters
+        - Description must be at least 5 characters
+        - Price per day must be non-negative
     """
     try:
         # Call service layer
-        branch_data = await branch_service.create_branch(request)
+        add_on_data = await add_on_service.create_add_on(request)
 
         # Return wrapped response
         return SuccessResponseWithPayload(
             success=True,
-            message="Branch created successfully",
-            data=branch_data.model_dump(),
+            message="Add-on created successfully",
+            data=add_on_data.model_dump(),
         )
 
     except Exception as e:
-        logger.error(f"Unexpected error during branch creation: {e}")
+        logger.error(f"Unexpected error during add-on creation: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -69,7 +77,7 @@ async def create_branch(request: CreateBranchRequest) -> SuccessResponseWithPayl
                 "details": [
                     {
                         "field": None,
-                        "message": "An unexpected error occurred while creating branch",
+                        "message": "An unexpected error occurred while creating add-on",
                         "error_code": "INTERNAL_ERROR",
                     }
                 ],
@@ -81,37 +89,39 @@ async def create_branch(request: CreateBranchRequest) -> SuccessResponseWithPayl
     "",
     response_model=SuccessResponseWithPayload,
     status_code=status.HTTP_200_OK,
-    summary="List all branches",
+    summary="List all add-ons",
     responses={
         200: {
-            "description": "Branches retrieved successfully",
+            "description": "Add-ons retrieved successfully",
             "model": SuccessResponseWithPayload,
         },
     },
 )
-async def list_branches() -> SuccessResponseWithPayload:
+async def list_add_ons() -> SuccessResponseWithPayload:
     """
-    List all branches in the system.
+    List all available add-ons in the system.
 
-    Returns a complete list of branches with:
-        - Basic info (name, city, address)
-        - Contact details
-        - Employee count
-        - Timestamps
+    Returns complete list of add-ons that customers can select
+    when creating or modifying reservations.
+
+    Each add-on includes:
+    - Name and description
+    - Daily rental price
+    - Creation and update timestamps
     """
     try:
         # Call service layer
-        branch_list = await branch_service.list_branches()
+        add_on_list = await add_on_service.list_add_ons()
 
         # Return wrapped response
         return SuccessResponseWithPayload(
             success=True,
-            message=f"Retrieved {branch_list.total_count} branches",
-            data=branch_list.model_dump(),
+            message=f"Retrieved {add_on_list.total_count} add-ons",
+            data=add_on_list.model_dump(),
         )
 
     except Exception as e:
-        logger.error(f"Unexpected error during branch listing: {e}")
+        logger.error(f"Unexpected error during add-on listing: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -120,7 +130,7 @@ async def list_branches() -> SuccessResponseWithPayload:
                 "details": [
                     {
                         "field": None,
-                        "message": "An unexpected error occurred while listing branches",
+                        "message": "An unexpected error occurred while listing add-ons",
                         "error_code": "INTERNAL_ERROR",
                     }
                 ],
@@ -129,47 +139,46 @@ async def list_branches() -> SuccessResponseWithPayload:
 
 
 @router.get(
-    "/{branch_id}",
+    "/{add_on_id}",
     response_model=SuccessResponseWithPayload,
     status_code=status.HTTP_200_OK,
-    summary="Get branch by ID",
+    summary="Get add-on by ID",
     responses={
         200: {
-            "description": "Branch retrieved successfully",
+            "description": "Add-on retrieved successfully",
             "model": SuccessResponseWithPayload,
         },
         404: {
-            "description": "Branch not found",
+            "description": "Add-on not found",
             "model": ErrorResponse,
         },
     },
 )
-async def get_branch(branch_id: str) -> SuccessResponseWithPayload:
+async def get_add_on(add_on_id: str) -> SuccessResponseWithPayload:
     """
-    Get detailed information about a specific branch.
+    Get detailed information about a specific add-on.
 
-    Returns complete branch data including:
-        - Basic info (name, city, address)
-        - Contact phone number
-        - Number of employees working at this branch
-        - Creation and update timestamps
+    Returns complete add-on data including:
+    - Name and description
+    - Daily rental price
+    - Creation and update timestamps
     """
     try:
         # Call service layer
-        branch_data = await branch_service.get_branch_by_id(branch_id)
+        add_on_data = await add_on_service.get_add_on_by_id(add_on_id)
 
-        if not branch_data:
-            logger.info(f"Branch not found: {branch_id}")
+        if not add_on_data:
+            logger.info(f"Add-on not found: {add_on_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={
                     "success": False,
-                    "error": "Branch Not Found",
+                    "error": "Add-on Not Found",
                     "details": [
                         {
-                            "field": "branch_id",
-                            "message": f"Branch with ID '{branch_id}' does not exist",
-                            "error_code": "BRANCH_NOT_FOUND",
+                            "field": "add_on_id",
+                            "message": f"Add-on with ID '{add_on_id}' does not exist",
+                            "error_code": "ADD_ON_NOT_FOUND",
                         }
                     ],
                 },
@@ -178,15 +187,15 @@ async def get_branch(branch_id: str) -> SuccessResponseWithPayload:
         # Return wrapped response
         return SuccessResponseWithPayload(
             success=True,
-            message="Branch retrieved successfully",
-            data=branch_data.model_dump(),
+            message="Add-on retrieved successfully",
+            data=add_on_data.model_dump(),
         )
 
     except HTTPException:
         raise  # Re-raise HTTP exceptions (404)
 
     except Exception as e:
-        logger.error(f"Unexpected error retrieving branch {branch_id}: {e}")
+        logger.error(f"Unexpected error retrieving add-on {add_on_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -195,7 +204,7 @@ async def get_branch(branch_id: str) -> SuccessResponseWithPayload:
                 "details": [
                     {
                         "field": None,
-                        "message": "An unexpected error occurred while retrieving branch",
+                        "message": "An unexpected error occurred while retrieving add-on",
                         "error_code": "INTERNAL_ERROR",
                     }
                 ],
@@ -204,17 +213,17 @@ async def get_branch(branch_id: str) -> SuccessResponseWithPayload:
 
 
 @router.put(
-    "/{branch_id}",
+    "/{add_on_id}",
     response_model=SuccessResponseWithPayload,
     status_code=status.HTTP_200_OK,
-    summary="Update branch information",
+    summary="Update add-on information",
     responses={
         200: {
-            "description": "Branch updated successfully",
+            "description": "Add-on updated successfully",
             "model": SuccessResponseWithPayload,
         },
         404: {
-            "description": "Branch not found",
+            "description": "Add-on not found",
             "model": ErrorResponse,
         },
         422: {
@@ -223,27 +232,36 @@ async def get_branch(branch_id: str) -> SuccessResponseWithPayload:
         },
     },
 )
-async def update_branch(
-    branch_id: str, request: UpdateBranchRequest
+async def update_add_on(
+    add_on_id: str, request: UpdateAddOnRequest
 ) -> SuccessResponseWithPayload:
-    """Update branch information."""
+    """
+    Update add-on information.
 
+    **Note:** In production, this endpoint should be restricted to manager users only.
+
+    All fields are optional - only provided fields will be updated.
+    Common updates:
+    - Price adjustments
+    - Description improvements
+    - Name corrections
+    """
     try:
         # Call service layer
-        branch_data = await branch_service.update_branch(branch_id, request)
+        add_on_data = await add_on_service.update_add_on(add_on_id, request)
 
-        if not branch_data:
-            logger.info(f"Branch not found for update: {branch_id}")
+        if not add_on_data:
+            logger.info(f"Add-on not found for update: {add_on_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={
                     "success": False,
-                    "error": "Branch Not Found",
+                    "error": "Add-on Not Found",
                     "details": [
                         {
-                            "field": "branch_id",
-                            "message": f"Branch with ID '{branch_id}' does not exist",
-                            "error_code": "BRANCH_NOT_FOUND",
+                            "field": "add_on_id",
+                            "message": f"Add-on with ID '{add_on_id}' does not exist",
+                            "error_code": "ADD_ON_NOT_FOUND",
                         }
                     ],
                 },
@@ -252,15 +270,15 @@ async def update_branch(
         # Return wrapped response
         return SuccessResponseWithPayload(
             success=True,
-            message="Branch updated successfully",
-            data=branch_data.model_dump(),
+            message="Add-on updated successfully",
+            data=add_on_data.model_dump(),
         )
 
     except HTTPException:
         raise  # Re-raise HTTP exceptions (404)
 
     except Exception as e:
-        logger.error(f"Unexpected error updating branch {branch_id}: {e}")
+        logger.error(f"Unexpected error updating add-on {add_on_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -269,7 +287,7 @@ async def update_branch(
                 "details": [
                     {
                         "field": None,
-                        "message": "An unexpected error occurred while updating branch",
+                        "message": "An unexpected error occurred while updating add-on",
                         "error_code": "INTERNAL_ERROR",
                     }
                 ],
@@ -278,40 +296,50 @@ async def update_branch(
 
 
 @router.delete(
-    "/{branch_id}",
+    "/{add_on_id}",
     response_model=SuccessResponseWithPayload,
     status_code=status.HTTP_200_OK,
-    summary="Delete a branch",
+    summary="Delete an add-on",
     responses={
         200: {
-            "description": "Branch deleted successfully",
+            "description": "Add-on deleted successfully",
             "model": SuccessResponseWithPayload,
         },
         404: {
-            "description": "Branch not found",
+            "description": "Add-on not found",
             "model": ErrorResponse,
         },
     },
 )
-async def delete_branch(branch_id: str) -> SuccessResponseWithPayload:
-    """Delete a branch from the system."""
+async def delete_add_on(add_on_id: str) -> SuccessResponseWithPayload:
+    """
+    Delete an add-on from the system.
 
+    **Note:** In production, this endpoint should be restricted to manager users only.
+
+    **Warning:** This is a hard delete. Consider soft delete (is_available = false)
+    for production to maintain historical data.
+
+    **Important:** Before deleting an add-on, ensure:
+    - No active reservations are using this add-on
+    - Historical data integrity is maintained
+    """
     try:
         # Call service layer
-        success = await branch_service.delete_branch(branch_id)
+        success = await add_on_service.delete_add_on(add_on_id)
 
         if not success:
-            logger.info(f"Branch not found for deletion: {branch_id}")
+            logger.info(f"Add-on not found for deletion: {add_on_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={
                     "success": False,
-                    "error": "Branch Not Found",
+                    "error": "Add-on Not Found",
                     "details": [
                         {
-                            "field": "branch_id",
-                            "message": f"Branch with ID '{branch_id}' does not exist",
-                            "error_code": "BRANCH_NOT_FOUND",
+                            "field": "add_on_id",
+                            "message": f"Add-on with ID '{add_on_id}' does not exist",
+                            "error_code": "ADD_ON_NOT_FOUND",
                         }
                     ],
                 },
@@ -320,15 +348,15 @@ async def delete_branch(branch_id: str) -> SuccessResponseWithPayload:
         # Return wrapped response
         return SuccessResponseWithPayload(
             success=True,
-            message="Branch deleted successfully",
-            data={"branch_id": branch_id},
+            message="Add-on deleted successfully",
+            data={"add_on_id": add_on_id},
         )
 
     except HTTPException:
         raise  # Re-raise HTTP exceptions (404)
 
     except Exception as e:
-        logger.error(f"Unexpected error deleting branch {branch_id}: {e}")
+        logger.error(f"Unexpected error deleting add-on {add_on_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -337,7 +365,7 @@ async def delete_branch(branch_id: str) -> SuccessResponseWithPayload:
                 "details": [
                     {
                         "field": None,
-                        "message": "An unexpected error occurred while deleting branch",
+                        "message": "An unexpected error occurred while deleting add-on",
                         "error_code": "INTERNAL_ERROR",
                     }
                 ],

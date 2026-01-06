@@ -12,8 +12,8 @@ from typing import Optional
 from fastapi import APIRouter, status, HTTPException, Query
 from pymongo.errors import DuplicateKeyError
 
+from services import vehicle_service
 from schemas.domain import VehicleStatus
-from services.vehicle_service import vehicle_service
 from schemas.api.common import SuccessResponseWithPayload, ErrorResponse
 from schemas.api.requests import (
     CreateVehicleRequest,

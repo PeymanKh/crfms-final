@@ -42,6 +42,8 @@ from schemas.db_models import (
     EmployeeDocument,
     VehicleDocument,
     BranchDocument,
+    AddOnDocument,
+    InsuranceTierDocument,
 )
 
 
@@ -662,6 +664,274 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Failed to remove employee from branch: {e}")
             raise
+
+    async def create_add_on(self, add_on_data: AddOnDocument) -> str:
+        """
+        Create a new add-on in the database.
+
+        Args:
+            add_on_data (AddOnDocument): Add-on Pydantic model with validated data.
+
+        Returns:
+            str: The created add-on ID
+
+        Raises:
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("add_ons")
+
+            # Convert Pydantic model to dict for MongoDB
+            add_on_dict = add_on_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(add_on_dict)
+            logger.info(f"Created add-on with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except Exception as e:
+            logger.error(f"Failed to create add-on: {e}")
+            raise
+
+    async def find_add_on_by_id(self, add_on_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find an add-on by ID.
+
+        Args:
+            add_on_id (str): Add-on's unique identifier
+
+        Returns:
+            Optional[Dict[str, Any]]: Add-on document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("add_ons")
+        return await collection.find_one({"_id": add_on_id})
+
+    async def find_add_ons(
+        self, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find add-ons with optional filters.
+
+        Args:
+            filters (Optional[Dict[str, Any]]): MongoDB query filters
+
+        Returns:
+            List[Dict[str, Any]]: List of add-on documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("add_ons")
+
+        if filters is None:
+            filters = {}
+
+        cursor = collection.find(filters).sort("created_at", -1)
+        add_ons = await cursor.to_list(length=None)
+        return add_ons
+
+    async def update_add_on(self, add_on_id: str, update_data: Dict[str, Any]) -> bool:
+        """
+        Update add-on information.
+
+        Args:
+            add_on_id (str): Add-on ID to update
+            update_data (Dict[str, Any]): Fields to update
+
+        Returns:
+            bool: True if add-on was updated, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("add_ons")
+
+            # Add updated_at timestamp
+            update_data["updated_at"] = datetime.now(timezone.utc)
+
+            result = await collection.update_one(
+                {"_id": add_on_id}, {"$set": update_data}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Updated add-on: {add_on_id}")
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to update add-on: {e}")
+            raise
+
+    async def delete_add_on(self, add_on_id: str) -> bool:
+        """
+        Delete an add-on from the database.
+
+        Args:
+            add_on_id (str): Add-on ID to delete
+
+        Returns:
+            bool: True if add-on was deleted, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("add_ons")
+        result = await collection.delete_one({"_id": add_on_id})
+
+        if result.deleted_count > 0:
+            logger.info(f"Deleted add-on: {add_on_id}")
+            return True
+        return False
+
+    async def find_add_ons_by_ids(self, add_on_ids: List[str]) -> List[Dict[str, Any]]:
+        """
+        Find multiple add-ons by their IDs.
+
+        Args:
+            add_on_ids (List[str]): List of add-on IDs to find
+
+        Returns:
+            List[Dict[str, Any]]: List of add-on documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("add_ons")
+        cursor = collection.find({"_id": {"$in": add_on_ids}})
+        add_ons = await cursor.to_list(length=None)
+        return add_ons
+
+    async def create_insurance_tier(self, tier_data: InsuranceTierDocument) -> str:
+        """
+        Create a new insurance tier in the database.
+
+        Args:
+            tier_data (InsuranceTierDocument): Insurance tier Pydantic model with validated data.
+
+        Returns:
+            str: The created insurance tier ID
+
+        Raises:
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("insurance_tiers")
+
+            # Convert Pydantic model to dict for MongoDB
+            tier_dict = tier_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(tier_dict)
+            logger.info(f"Created insurance tier with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except Exception as e:
+            logger.error(f"Failed to create insurance tier: {e}")
+            raise
+
+    async def find_insurance_tier_by_id(self, tier_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find an insurance tier by ID.
+
+        Args:
+            tier_id (str): Insurance tier's unique identifier
+
+        Returns:
+            Optional[Dict[str, Any]]: Insurance tier document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("insurance_tiers")
+        return await collection.find_one({"_id": tier_id})
+
+    async def find_insurance_tiers(
+        self, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find insurance tiers with optional filters.
+
+        Args:
+            filters (Optional[Dict[str, Any]]): MongoDB query filters
+
+        Returns:
+            List[Dict[str, Any]]: List of insurance tier documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("insurance_tiers")
+
+        if filters is None:
+            filters = {}
+
+        cursor = collection.find(filters).sort("created_at", -1)
+        tiers = await cursor.to_list(length=None)
+        return tiers
+
+    async def update_insurance_tier(
+        self, tier_id: str, update_data: Dict[str, Any]
+    ) -> bool:
+        """
+        Update insurance tier information.
+
+        Args:
+            tier_id (str): Insurance tier ID to update
+            update_data (Dict[str, Any]): Fields to update
+
+        Returns:
+            bool: True if tier was updated, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("insurance_tiers")
+
+            # Add updated_at timestamp
+            update_data["updated_at"] = datetime.now(timezone.utc)
+
+            result = await collection.update_one(
+                {"_id": tier_id}, {"$set": update_data}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Updated insurance tier: {tier_id}")
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to update insurance tier: {e}")
+            raise
+
+    async def delete_insurance_tier(self, tier_id: str) -> bool:
+        """
+        Delete an insurance tier from the database.
+
+        Args:
+            tier_id (str): Insurance tier ID to delete
+
+        Returns:
+            bool: True if tier was deleted, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("insurance_tiers")
+        result = await collection.delete_one({"_id": tier_id})
+
+        if result.deleted_count > 0:
+            logger.info(f"Deleted insurance tier: {tier_id}")
+            return True
+        return False
 
 
 # Create singleton instance

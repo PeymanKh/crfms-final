@@ -12,6 +12,8 @@ from api.routes.health import router as health_router
 from api.routes.auth import router as auth_router
 from api.routes.vehicle import router as vehicle_router
 from api.routes.branches import router as branch_router
+from api.routes.add_ons import router as add_ons_router
+from api.routes.insurance_tiers import router as insurance_tiers_router
 
 # Public API
 __all__ = [
@@ -19,4 +21,6 @@ __all__ = [
     "auth_router",
     "vehicle_router",
     "branch_router",
+    "add_ons_router",
+    "insurance_tiers_router",
 ]

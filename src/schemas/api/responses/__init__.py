@@ -12,6 +12,16 @@ from schemas.api.responses.vehicles import VehicleData, VehicleListData
 # Import branch schemas
 from schemas.api.responses.branches import BranchData, BranchListData
 
+# Import add-on schemas
+from schemas.api.responses.add_ons import AddOnData, AddOnListData
+
+# Import insurance tier schemas
+from schemas.api.responses.insurance_tiers import (
+    InsuranceTierData,
+    InsuranceTierListData,
+)
+
+
 # Public API
 __all__ = [
     # auth schemas
@@ -23,4 +33,10 @@ __all__ = [
     # branch schemas
     "BranchData",
     "BranchListData",
+    # add-on schemas
+    "AddOnData",
+    "AddOnListData",
+    # insurance tier schemas
+    "InsuranceTierData",
+    "InsuranceTierListData",
 ]

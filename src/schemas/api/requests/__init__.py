@@ -21,6 +21,14 @@ from schemas.api.requests.vehicles import (
 # Import branch schemas
 from schemas.api.requests.branches import CreateBranchRequest, UpdateBranchRequest
 
+# Import add-on schemas
+from schemas.api.requests.add_ons import CreateAddOnRequest, UpdateAddOnRequest
+
+# Import insurance tier schemas
+from schemas.api.requests.insurance_tiers import (
+    CreateInsuranceTierRequest,
+    UpdateInsuranceTierRequest,
+)
 
 # Public API
 __all__ = [
@@ -36,4 +44,10 @@ __all__ = [
     # branch schemas
     "CreateBranchRequest",
     "UpdateBranchRequest",
+    # add-on schemas
+    "CreateAddOnRequest",
+    "UpdateAddOnRequest",
+    # insurance tier schemas
+    "CreateInsuranceTierRequest",
+    "UpdateInsuranceTierRequest",
 ]
