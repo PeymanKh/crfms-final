@@ -22,6 +22,7 @@ from schemas.db_models.insurance_tier_models import InsuranceTierDocument
 from schemas.db_models.reservation_models import (
     ReservationAddOnDocument,
     ReservationDocument,
+    InvoiceDocument,
 )
 
 
@@ -41,4 +42,5 @@ __all__ = [
     # reservation schemas
     "ReservationAddOnDocument",
     "ReservationDocument",
+    "InvoiceDocument",
 ]

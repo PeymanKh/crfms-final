@@ -38,6 +38,27 @@ class ReservationAddOnData(BaseModel):
     )
 
 
+class InvoiceData(BaseModel):
+    """Invoice data embedded in reservation response."""
+
+    id: str = Field(..., description="Invoice ID")
+    status: str = Field(..., description="Invoice status (pending/completed/failed)")
+    date: date = Field(..., description="Invoice date")
+    total_price: float = Field(..., description="Invoice total price")
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": "invoice-uuid-abc",
+                "status": "pending",
+                "date": "2026-01-06",
+                "total_price": 252.0,
+            }
+        },
+    )
+
+
 class ReservationData(BaseModel):
     """
     Reservation data payload for API responses.
@@ -77,6 +98,7 @@ class ReservationData(BaseModel):
     add_ons: List[ReservationAddOnData] = Field(..., description="Add-ons list")
     total_price: float = Field(..., description="Total price")
     rental_days: int = Field(..., description="Number of rental days")
+    invoice: InvoiceData = Field(..., description="Invoice information")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
@@ -107,6 +129,12 @@ class ReservationData(BaseModel):
                 ],
                 "total_price": 252.0,
                 "rental_days": 4,
+                "invoice": {
+                    "id": "invoice-uuid-abc",
+                    "status": "pending",
+                    "date": "2026-01-06",
+                    "total_price": 252.0,
+                },
                 "created_at": "2026-01-06T08:00:00Z",
                 "updated_at": "2026-01-06T08:00:00Z",
             }

@@ -30,6 +30,27 @@ class ReservationAddOnDocument(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class InvoiceDocument(BaseModel):
+    """
+    Embedded invoice document within reservation.
+
+    Invoice is automatically created with reservation and tracks payment status.
+
+    Attributes:
+        id (str): Invoice unique identifier.
+        status (str): Payment status (pending/completed/failed).
+        date (date): Invoice creation date.
+        total_price (float): Invoice amount (same as reservation total).
+    """
+
+    id: str
+    status: str  # pending/completed/failed
+    date: date
+    total_price: float
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ReservationDocument(BaseModel):
     """
     MongoDB document schema for reservations collection.
@@ -68,5 +89,6 @@ class ReservationDocument(BaseModel):
     add_ons: List[ReservationAddOnDocument] = Field(default_factory=list)
     total_price: float
     rental_days: int
+    invoice: InvoiceDocument
     created_at: datetime
     updated_at: datetime

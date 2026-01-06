@@ -26,6 +26,7 @@ from schemas.api.responses.reservations import (
     ReservationAddOnData,
     ReservationData,
     ReservationListData,
+    InvoiceData,
 )
 
 
@@ -50,4 +51,5 @@ __all__ = [
     "ReservationData",
     "ReservationListData",
     "ReservationAddOnData",
+    "InvoiceData",
 ]

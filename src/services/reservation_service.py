@@ -15,7 +15,8 @@ from typing import Optional, List, Dict, Any
 
 from core.database_manager import db_manager
 from core.pricing_calculator import calculate_total_price, determine_pricing_strategy
-from schemas.db_models.reservation_models import (
+from schemas.db_models import (
+    InvoiceDocument,
     ReservationDocument,
     ReservationAddOnDocument,
 )
@@ -28,6 +29,7 @@ from schemas.api.responses.reservations import (
     ReservationData,
     ReservationListData,
     ReservationAddOnData,
+    InvoiceData,
 )
 from schemas.domain import ReservationStatus
 from core.pricing_calculator import calculate_rental_days
@@ -210,6 +212,14 @@ class ReservationService:
         reservation_id = str(uuid.uuid4())
         current_time = datetime.now(timezone.utc)
 
+        # Create invoice document
+        invoice_doc = InvoiceDocument(
+            id=str(uuid.uuid4()),
+            status="pending",
+            date=current_time.date(),
+            total_price=total_price,
+        )
+
         # Create database document
         reservation_doc = ReservationDocument(
             _id=reservation_id,
@@ -224,6 +234,7 @@ class ReservationService:
             add_ons=add_on_documents,
             total_price=total_price,
             rental_days=rental_days,
+            invoice=invoice_doc,
             created_at=current_time,
             updated_at=current_time,
         )
@@ -257,6 +268,7 @@ class ReservationService:
             ],
             total_price=total_price,
             rental_days=rental_days,
+            invoice=invoice_doc,
             created_at=current_time,
             updated_at=current_time,
         )
@@ -299,6 +311,12 @@ class ReservationService:
             ],
             total_price=reservation_doc["total_price"],
             rental_days=reservation_doc["rental_days"],
+            invoice=InvoiceData(
+                id=reservation_doc["invoice"]["id"],
+                status=reservation_doc["invoice"]["status"],
+                date=reservation_doc["invoice"]["date"],
+                total_price=reservation_doc["invoice"]["total_price"],
+            ),
             created_at=reservation_doc["created_at"],
             updated_at=reservation_doc["updated_at"],
         )
@@ -315,6 +333,7 @@ class ReservationService:
         2. If dates change, recalculate rental_days and total_price
         3. If vehicle changes, check availability
         4. If insurance/add-ons change, recalculate total_price
+        5. Invoice price auto-syncs when reservation price changes
 
         Args:
             reservation_id (str): Reservation ID to update.
@@ -417,9 +436,7 @@ class ReservationService:
         # Recalculate price if needed
         if needs_price_recalculation:
             # Get final values (updated or existing)
-            final_customer_id = existing_reservation[
-                "customer_id"
-            ]  # Customer never changes
+            final_customer_id = existing_reservation["customer_id"]
             final_vehicle_id = update_data.get(
                 "vehicle_id", existing_reservation["vehicle_id"]
             )
@@ -454,8 +471,12 @@ class ReservationService:
             update_data["rental_days"] = rental_days
             update_data["add_ons"] = [addon.model_dump() for addon in add_on_documents]
 
+            # Auto sync invoice price
+            update_data["invoice.total_price"] = total_price
+
             logger.info(
-                f"Recalculated price for reservation {reservation_id}: ${total_price}"
+                f"Recalculated price for reservation {reservation_id}: ${total_price} "
+                f"(invoice auto-synced)"
             )
 
         # If no fields to update, return current data
@@ -556,6 +577,12 @@ class ReservationService:
                 ],
                 total_price=doc["total_price"],
                 rental_days=doc["rental_days"],
+                invoice=InvoiceData(
+                    id=doc["invoice"]["id"],
+                    status=doc["invoice"]["status"],
+                    date=doc["invoice"]["date"],
+                    total_price=doc["invoice"]["total_price"],
+                ),
                 created_at=doc["created_at"],
                 updated_at=doc["updated_at"],
             )
