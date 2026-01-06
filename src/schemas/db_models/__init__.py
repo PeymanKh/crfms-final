@@ -18,6 +18,12 @@ from schemas.db_models.add_on_models import AddOnDocument
 # Import insurance tier schemas
 from schemas.db_models.insurance_tier_models import InsuranceTierDocument
 
+# Import reservation schemas
+from schemas.db_models.reservation_models import (
+    ReservationAddOnDocument,
+    ReservationDocument,
+)
+
 
 # Public API
 __all__ = [
@@ -32,4 +38,7 @@ __all__ = [
     "AddOnDocument",
     # insurance tier schemas
     "InsuranceTierDocument",
+    # reservation schemas
+    "ReservationAddOnDocument",
+    "ReservationDocument",
 ]

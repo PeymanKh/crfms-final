@@ -20,6 +20,7 @@ from typing import Optional, TYPE_CHECKING
 
 from schemas.domain import ReservationStatus
 from core import ReturnDateBeforePickupDateError
+from core.pricing_calculator import calculate_total_price, determine_pricing_strategy
 
 if TYPE_CHECKING:
     from core import ClockService
@@ -156,12 +157,17 @@ class Reservation:
         if total_price is not None:
             self.__total_price = total_price
         else:
-            self.__total_price = self.__pricing_strategy.calculate_price(
-                vehicle=vehicle,
-                insurance_tier=insurance_tier,
+            strategy_type = determine_pricing_strategy(len(creator.reservations))
+
+            addon_prices = [addon.price_per_day for addon in add_ons]
+
+            self.__total_price = calculate_total_price(
+                vehicle_price_per_day=vehicle.price_per_day,
+                insurance_price_per_day=insurance_tier.price_per_day,
+                addon_prices_per_day=addon_prices,
                 pickup_date=pickup_date,
                 return_date=return_date,
-                add_ons=add_ons,
+                strategy_type=strategy_type,
             )
         # Add dynamic invoice
         if invoice is not None:

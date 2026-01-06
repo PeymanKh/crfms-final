@@ -21,6 +21,7 @@ Last Update: 28-12-2025
 
 import asyncio
 import logging
+from datetime import date
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any, List
@@ -44,6 +45,7 @@ from schemas.db_models import (
     BranchDocument,
     AddOnDocument,
     InsuranceTierDocument,
+    ReservationDocument,
 )
 
 
@@ -932,6 +934,287 @@ class DatabaseManager:
             logger.info(f"Deleted insurance tier: {tier_id}")
             return True
         return False
+
+    async def create_reservation(self, reservation_data: ReservationDocument) -> str:
+        """
+        Create a new reservation in the database.
+
+        Args:
+            reservation_data (ReservationDocument): Reservation Pydantic model with validated data.
+
+        Returns:
+            str: The created reservation ID
+
+        Raises:
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("reservations")
+
+            # Convert Pydantic model to dict for MongoDB
+            reservation_dict = reservation_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(reservation_dict)
+            logger.info(f"Created reservation with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except Exception as e:
+            logger.error(f"Failed to create reservation: {e}")
+            raise
+
+    async def find_reservation_by_id(
+        self, reservation_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Find a reservation by ID.
+
+        Args:
+            reservation_id (str): Reservation's unique identifier
+
+        Returns:
+            Optional[Dict[str, Any]]: Reservation document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("reservations")
+        return await collection.find_one({"_id": reservation_id})
+
+    async def find_reservations(
+        self, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find reservations with optional filters.
+
+        Args:
+            filters (Optional[Dict[str, Any]]): MongoDB query filters
+
+        Returns:
+            List[Dict[str, Any]]: List of reservation documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("reservations")
+
+        if filters is None:
+            filters = {}
+
+        cursor = collection.find(filters).sort("created_at", -1)
+        reservations = await cursor.to_list(length=None)
+        return reservations
+
+    async def update_reservation(
+        self, reservation_id: str, update_data: Dict[str, Any]
+    ) -> bool:
+        """
+        Update reservation information.
+
+        Args:
+            reservation_id (str): Reservation ID to update
+            update_data (Dict[str, Any]): Fields to update
+
+        Returns:
+            bool: True if reservation was updated, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("reservations")
+
+            # Add updated_at timestamp
+            update_data["updated_at"] = datetime.now(timezone.utc)
+
+            result = await collection.update_one(
+                {"_id": reservation_id}, {"$set": update_data}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Updated reservation: {reservation_id}")
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to update reservation: {e}")
+            raise
+
+    async def delete_reservation(self, reservation_id: str) -> bool:
+        """
+        Delete a reservation from the database.
+
+        Args:
+            reservation_id (str): Reservation ID to delete
+
+        Returns:
+            bool: True if reservation was deleted, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("reservations")
+        result = await collection.delete_one({"_id": reservation_id})
+
+        if result.deleted_count > 0:
+            logger.info(f"Deleted reservation: {reservation_id}")
+            return True
+        return False
+
+    async def find_reservations_by_customer(
+        self, customer_id: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Find all reservations for a specific customer.
+
+        Args:
+            customer_id (str): Customer ID to filter by
+
+        Returns:
+            List[Dict[str, Any]]: List of reservation documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("reservations")
+        cursor = collection.find({"customer_id": customer_id}).sort("created_at", -1)
+        reservations = await cursor.to_list(length=None)
+        return reservations
+
+    async def find_reservations_by_vehicle(
+        self, vehicle_id: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Find all reservations for a specific vehicle.
+
+        Args:
+            vehicle_id (str): Vehicle ID to filter by
+
+        Returns:
+            List[Dict[str, Any]]: List of reservation documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("reservations")
+        cursor = collection.find({"vehicle_id": vehicle_id}).sort("pickup_date", 1)
+        reservations = await cursor.to_list(length=None)
+        return reservations
+
+    async def check_vehicle_availability(
+        self,
+        vehicle_id: str,
+        pickup_date: date,
+        return_date: date,
+        exclude_reservation_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Check if a vehicle is available for the given date range.
+
+        A vehicle is unavailable if there's any reservation that overlaps
+        with the requested dates.
+
+        Date overlap logic:
+        - Existing reservation overlaps if:
+          (existing.pickup_date <= requested.return_date) AND
+          (existing.return_date >= requested.pickup_date)
+
+        Args:
+            vehicle_id (str): Vehicle ID to check
+            pickup_date (date): Requested pickup date
+            return_date (date): Requested return date
+            exclude_reservation_id (Optional[str]): Exclude this reservation ID
+                (useful when updating existing reservation)
+
+        Returns:
+            bool: True if vehicle is available, False if already booked
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("reservations")
+
+            # Build query to find overlapping reservations
+            query = {
+                "vehicle_id": vehicle_id,
+                "status": {"$in": ["pending", "confirmed"]},  # Only active reservations
+                "pickup_date": {"$lte": return_date},  # Starts before/on our return
+                "return_date": {"$gte": pickup_date},  # Ends after/on our pickup
+            }
+
+            # Exclude specific reservation (for updates)
+            if exclude_reservation_id:
+                query["_id"] = {"$ne": exclude_reservation_id}
+
+            # Check if any overlapping reservations exist
+            conflicting_reservation = await collection.find_one(query)
+
+            is_available = conflicting_reservation is None
+
+            if not is_available:
+                logger.info(
+                    f"Vehicle {vehicle_id} not available from {pickup_date} to {return_date}. "
+                    f"Conflicts with reservation {conflicting_reservation['_id']}"
+                )
+
+            return is_available
+
+        except Exception as e:
+            logger.error(f"Failed to check vehicle availability: {e}")
+            raise
+
+    async def find_reservations_by_status(self, status: str) -> List[Dict[str, Any]]:
+        """
+        Find all reservations with a specific status.
+
+        Args:
+            status (str): Status to filter by (pending/confirmed/cancelled/completed)
+
+        Returns:
+            List[Dict[str, Any]]: List of reservation documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("reservations")
+        cursor = collection.find({"status": status}).sort("created_at", -1)
+        reservations = await cursor.to_list(length=None)
+        return reservations
+
+    async def find_reservations_by_date_range(
+        self,
+        pickup_date_from: Optional[date] = None,
+        pickup_date_to: Optional[date] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Find reservations within a pickup date range.
+
+        Args:
+            pickup_date_from (Optional[date]): Start of date range (inclusive)
+            pickup_date_to (Optional[date]): End of date range (inclusive)
+
+        Returns:
+            List[Dict[str, Any]]: List of reservation documents
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("reservations")
+
+        query = {}
+        if pickup_date_from or pickup_date_to:
+            query["pickup_date"] = {}
+            if pickup_date_from:
+                query["pickup_date"]["$gte"] = pickup_date_from
+            if pickup_date_to:
+                query["pickup_date"]["$lte"] = pickup_date_to
+
+        cursor = collection.find(query).sort("pickup_date", 1)
+        reservations = await cursor.to_list(length=None)
+        return reservations
 
 
 # Create singleton instance

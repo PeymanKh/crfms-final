@@ -30,6 +30,13 @@ from schemas.api.requests.insurance_tiers import (
     UpdateInsuranceTierRequest,
 )
 
+# Import reservation schemas
+from schemas.api.requests.reservations import (
+    CreateReservationRequest,
+    UpdateReservationRequest,
+    ReservationFilterRequest,
+)
+
 # Public API
 __all__ = [
     # auth schemas
@@ -50,4 +57,8 @@ __all__ = [
     # insurance tier schemas
     "CreateInsuranceTierRequest",
     "UpdateInsuranceTierRequest",
+    # reservation schemas
+    "CreateReservationRequest",
+    "UpdateReservationRequest",
+    "ReservationFilterRequest",
 ]

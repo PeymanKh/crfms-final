@@ -21,6 +21,13 @@ from schemas.api.responses.insurance_tiers import (
     InsuranceTierListData,
 )
 
+# Import reservation schemas
+from schemas.api.responses.reservations import (
+    ReservationAddOnData,
+    ReservationData,
+    ReservationListData,
+)
+
 
 # Public API
 __all__ = [
@@ -39,4 +46,8 @@ __all__ = [
     # insurance tier schemas
     "InsuranceTierData",
     "InsuranceTierListData",
+    # reservation schemas
+    "ReservationData",
+    "ReservationListData",
+    "ReservationAddOnData",
 ]
