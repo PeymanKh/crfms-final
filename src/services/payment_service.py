@@ -9,7 +9,8 @@ Date: 06-01-2026
 
 import logging
 
-from core.database_manager import db_manager
+from schemas.domain import EventTypes
+from core import db_manager, rabbitmq_manager
 from schemas.api.responses import PaymentData
 from domain.payment import CreditCardPaymentCreator, PaypalPaymentCreator
 from schemas.api.requests.payments import (
@@ -80,6 +81,30 @@ class PaymentService:
             f"Payment {new_invoice_status} for reservation {request.reservation_id}: "
             f"${amount} via {request.payment_method}"
         )
+
+        # Publish payment event
+        try:
+            event_type = (
+                EventTypes.INVOICE_PAID
+                if payment_success
+                else EventTypes.INVOICE_PAYMENT_FAILED
+            )
+
+            await rabbitmq_manager.publish_event(
+                event_type=event_type,
+                data={
+                    "reservation_id": request.reservation_id,
+                    "invoice_id": invoice["id"],
+                    "amount": amount,
+                    "payment_method": request.payment_method,
+                    "receipt": receipt,
+                },
+            )
+            logger.info(
+                f"Published {event_type} event for reservation {request.reservation_id}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to publish payment event: {e}")
 
         # Return payment result
         return PaymentData(

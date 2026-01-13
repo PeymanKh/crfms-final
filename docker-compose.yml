@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: crfms-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: crfms_admin_password_2026
+      MONGO_INITDB_DATABASE: crfms-peyman-2104987
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - crfms-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: crfms-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - crfms-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crfms-api
+    restart: unless-stopped
+    environment:
+      # Application
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+
+      # Database
+      DATABASE__URI: mongodb://admin:crfms_admin_password_2026@mongodb:27017/
+      DATABASE__NAME: crfms-peyman-2104987
+
+      # RabbitMQ
+      RABBITMQ__URL: amqp://guest:guest@rabbitmq:5672/
+      RABBITMQ__QUEUE_NAME: crfms_queue
+      RABBITMQ__EXCHANGE_NAME: crfms_events
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - crfms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Named volumes for data persistence
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+# Custom network
+networks:
+  crfms-network:
+    driver: bridge

@@ -27,6 +27,9 @@ from services.payment_service import payment_service
 # Import rental service
 from services.rental_service import rental_service
 
+# Import event consumer
+from services.event_consumer import event_consumer
+
 
 # Public API
 __all__ = [
@@ -38,4 +41,5 @@ __all__ = [
     "reservation_service",
     "payment_service",
     "rental_service",
+    "event_consumer",
 ]

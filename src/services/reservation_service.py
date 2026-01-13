@@ -13,7 +13,7 @@ import logging
 from datetime import datetime, timezone, date
 from typing import Optional, List, Dict, Any
 
-from core.database_manager import db_manager
+from core import db_manager, rabbitmq_manager
 from core.pricing_calculator import calculate_total_price, determine_pricing_strategy
 from schemas.db_models import (
     InvoiceDocument,
@@ -31,7 +31,7 @@ from schemas.api.responses.reservations import (
     ReservationAddOnData,
     InvoiceData,
 )
-from schemas.domain import ReservationStatus
+from schemas.domain import ReservationStatus, EventTypes
 from core.pricing_calculator import calculate_rental_days
 
 
@@ -254,6 +254,23 @@ class ReservationService:
         except Exception as e:
             logger.error(f"Failed to create reservation: {e}")
             raise
+
+        # Publish ReservationConfirmed event
+        try:
+            await rabbitmq_manager.publish_event(
+                event_type=EventTypes.RESERVATION_CONFIRMED,
+                data={
+                    "reservation_id": reservation_id,
+                    "customer_id": request.customer_id,
+                    "vehicle_id": request.vehicle_id,
+                    "pickup_date": str(request.pickup_date),
+                    "return_date": str(request.return_date),
+                    "total_price": total_price,
+                },
+            )
+            logger.info(f"Published ReservationConfirmed event for {reservation_id}")
+        except Exception as e:
+            logger.error(f"Failed to publish event: {e}")
 
         # Return response data
         return ReservationData(
@@ -502,6 +519,18 @@ class ReservationService:
         except Exception as e:
             logger.error(f"Failed to update reservation: {e}")
             raise
+
+        # Publish ReservationModified event
+        try:
+            await rabbitmq_manager.publish_event(
+                event_type=EventTypes.RESERVATION_MODIFIED,
+                data={
+                    "reservation_id": reservation_id,
+                },
+            )
+            logger.info(f"Published ReservationConfirmed event for {reservation_id}")
+        except Exception as e:
+            logger.error(f"Failed to publish event: {e}")
 
         # Return updated reservation data
         return await ReservationService.get_reservation_by_id(reservation_id)

@@ -11,6 +11,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from services import event_consumer
+
 from api.routes import (
     health_router,
     auth_router,
@@ -27,6 +29,7 @@ from core import (
     SystemClock,
     db_manager,
     setup_logging,
+    rabbitmq_manager,
     ApplicationShutdownError,
     ApplicationStartUpError,
 )
@@ -52,6 +55,13 @@ async def lifespan(app: FastAPI):
         # Connect to MongoDB
         await db_manager.connect()
         logger.info("Database connection established")
+
+        await rabbitmq_manager.connect()
+        logger.info("RabbitMQ connection established")
+
+        # NEW: Start event consumer
+        await event_consumer.start_consuming()
+        logger.info("Event consumer started")
 
         # Initialize clock service
         app.state.clock = SystemClock()

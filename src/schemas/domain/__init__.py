@@ -6,6 +6,7 @@ Author: Peyman Khodabandehlouei
 
 # Import modules
 from schemas.domain.schemas import RentalCharges, RentalReading
+from schemas.domain.events import DomainEvent, EventTypes
 from schemas.domain.enums import (
     Gender,
     EmploymentType,
@@ -26,4 +27,6 @@ __all__ = [
     "RentalCharges",
     "RentalReading",
     "RentalStatus",
+    "DomainEvent",
+    "EventTypes",
 ]

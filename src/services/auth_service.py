@@ -10,6 +10,7 @@ Date: 05-01-2026
 
 import uuid
 import logging
+from typing import List
 from datetime import datetime, timezone
 from pymongo.errors import DuplicateKeyError
 
@@ -235,6 +236,49 @@ class AuthService:
             branch_id=request.branch_id,
             created_at=current_time,
         )
+
+    @staticmethod
+    async def get_all_customers() -> List[CustomerData]:
+        """Get all customers from database."""
+        customer_docs = await db_manager.find_all_customers()
+        return [
+            CustomerData(
+                id=doc["_id"],
+                first_name=doc["first_name"],
+                last_name=doc["last_name"],
+                gender=doc["gender"],
+                birth_date=doc["birth_date"],
+                email=doc["email"],
+                phone_number=doc["phone_number"],
+                address=doc["address"],
+                role=doc["role"],
+                created_at=doc["created_at"],
+            )
+            for doc in customer_docs
+        ]
+
+    @staticmethod
+    async def get_all_employees() -> List[EmployeeData]:
+        """Get all employees (agents + managers) from database."""
+        employee_docs = await db_manager.find_all_employees()
+        return [
+            EmployeeData(
+                id=doc["_id"],
+                first_name=doc["first_name"],
+                last_name=doc["last_name"],
+                gender=doc["gender"],
+                birth_date=doc["birth_date"],
+                email=doc["email"],
+                phone_number=doc["phone_number"],
+                address=doc["address"],
+                role=doc["role"],
+                employment_type=doc["employment_type"],
+                salary=doc["salary"],
+                branch_id=doc["branch_id"],
+                created_at=doc["created_at"],
+            )
+            for doc in employee_docs
+        ]
 
 
 # Singleton instance

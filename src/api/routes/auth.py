@@ -261,3 +261,35 @@ async def register_manager(
                 ],
             },
         )
+
+
+@router.get(
+    "/auth/customers",
+    response_model=SuccessResponseWithPayload,
+    status_code=status.HTTP_200_OK,
+    summary="Get all customers",
+)
+async def get_all_customers() -> SuccessResponseWithPayload:
+    """Get list of all registered customers."""
+    customers = await auth_service.get_all_customers()
+    return SuccessResponseWithPayload(
+        success=True,
+        message=f"Retrieved {len(customers)} customers",
+        data={"customers": [c.model_dump() for c in customers]},
+    )
+
+
+@router.get(
+    "/auth/employees",
+    response_model=SuccessResponseWithPayload,
+    status_code=status.HTTP_200_OK,
+    summary="Get all employees (agents + managers)",
+)
+async def get_all_employees() -> SuccessResponseWithPayload:
+    """Get list of all registered employees."""
+    employees = await auth_service.get_all_employees()
+    return SuccessResponseWithPayload(
+        success=True,
+        message=f"Retrieved {len(employees)} employees",
+        data={"employees": [e.model_dump() for e in employees]},
+    )

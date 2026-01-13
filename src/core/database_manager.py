@@ -1471,6 +1471,30 @@ class DatabaseManager:
             logger.error(f"Failed to check rental extension conflict: {e}")
             raise
 
+    async def find_all_customers(self) -> List[Dict[str, Any]]:
+        """
+        Retrieve all customers from the database.
+
+        Returns:
+            List[Dict[str, Any]]: List of customer documents.
+        """
+        collection = self.get_collection("customers")
+
+        return await collection.find({"role": "customer"}).to_list(None)
+
+    async def find_all_employees(self) -> List[Dict[str, Any]]:
+        """
+        Retrieve all employees (agents and managers) from the database.
+
+        Returns:
+            List[Dict[str, Any]]: List of employee documents.
+        """
+        collection = self.get_collection("employees")
+
+        return await collection.find({"role": {"$in": ["agent", "manager"]}}).to_list(
+            None
+        )
+
 
 # Create singleton instance
 db_manager = DatabaseManager()

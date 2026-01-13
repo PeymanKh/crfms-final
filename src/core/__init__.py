@@ -11,6 +11,9 @@ from core.logging_config import setup_logging
 # Import database manager
 from core.database_manager import db_manager
 
+# Import rabbitmq manager
+from core.rabbitmq_manager import rabbitmq_manager
+
 # Import clock service
 from core.clock_service import ClockService, SystemClock, FakeClock
 
@@ -34,6 +37,8 @@ __all__ = [
     "setup_logging",
     # Database
     "db_manager",
+    # RabbitMQ
+    "rabbitmq_manager",
     # Clock
     "FakeClock",
     "SystemClock",

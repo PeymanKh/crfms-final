@@ -13,7 +13,7 @@ import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from core.database_manager import db_manager
+from core import db_manager, rabbitmq_manager
 from core.clock_service import SystemClock
 from schemas.db_models import (
     RentalDocument,
@@ -34,7 +34,7 @@ from schemas.api.responses import (
     PickupSuccessData,
     ReturnSuccessData,
 )
-from schemas.domain import RentalStatus, ReservationStatus
+from schemas.domain import RentalStatus, ReservationStatus, EventTypes
 
 # Business rule constants
 LATE_FEE_PER_HOUR = 10.0
@@ -208,6 +208,24 @@ class RentalService:
             rental_doc.model_dump(by_alias=True)
         )
 
+        try:
+            await rabbitmq_manager.publish_event(
+                event_type=EventTypes.PICKUP_COMPLETED,
+                data={
+                    "rental_id": rental_id,
+                    "reservation_id": request.reservation_id,
+                    "customer_id": rental_doc.customer_id,
+                    "vehicle_id": vehicle_id,
+                    "agent_id": request.agent_id,
+                    "odometer_reading": request.odometer_reading,
+                    "fuel_level": request.fuel_level,
+                    "pickup_timestamp": pickup_timestamp.isoformat(),
+                },
+            )
+            logger.info(f"Published PickupCompleted event for {rental_id}")
+        except Exception as e:
+            logger.error(f"Failed to publish pickup event: {e}")
+
         return PickupSuccessData(
             rental=rental_data, message="Vehicle picked up successfully"
         )
@@ -316,14 +334,38 @@ class RentalService:
 
         # Update vehicle status to 'available'
         try:
-            await db_manager.update_vehicle(request.vehicle_id, {"status": "available"})
-            logger.info(f"Updated vehicle {request.vehicle_id} status to 'available'")
+            await db_manager.update_vehicle(
+                rental_doc["vehicle_id"], {"status": "available"}
+            )
+            logger.info(
+                f"Updated vehicle {rental_doc['vehicle_id']} status to 'available'"
+            )
         except Exception as e:
             logger.error(f"Failed to update vehicle status: {e}")
 
         # Get updated rental
         updated_rental_doc = await db_manager.find_rental_by_id(rental_id)
         rental_data = await self._convert_rental_doc_to_response(updated_rental_doc)
+
+        # Publish ReturnCompleted event
+        try:
+            await rabbitmq_manager.publish_event(
+                event_type=EventTypes.RETURN_COMPLETED,
+                data={
+                    "rental_id": rental_id,
+                    "reservation_id": rental_doc["reservation_id"],
+                    "vehicle_id": rental_doc["vehicle_id"],
+                    "customer_id": rental_doc["customer_id"],
+                    "total_charges": charges.total,
+                    "late_fee": charges.late_fee,
+                    "mileage_overage_fee": charges.mileage_overage_fee,
+                    "fuel_refill_fee": charges.fuel_refill_fee,
+                    "damage_fee": charges.damage_fee,
+                },
+            )
+            logger.info(f"Published ReturnCompleted event for {rental_id}")
+        except Exception as e:
+            logger.error(f"Failed to publish return event: {e}")
 
         return ReturnSuccessData(
             rental=rental_data,
