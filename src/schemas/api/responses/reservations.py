@@ -71,7 +71,7 @@ class ReservationData(BaseModel):
 
     Attributes:
         id (str): Unique reservation identifier.
-        status (str): Reservation status (pending/confirmed/cancelled/completed).
+        status (str): Reservation status (pending/approved/cancelled/completed).
         customer_id (str): Customer who made the reservation.
         vehicle_id (str): Reserved vehicle ID.
         insurance_tier_id (str): Insurance tier ID.

@@ -24,6 +24,10 @@ from services.reservation_service import reservation_service
 # Import payment service
 from services.payment_service import payment_service
 
+# Import rental service
+from services.rental_service import rental_service
+
+
 # Public API
 __all__ = [
     "auth_service",
@@ -33,4 +37,5 @@ __all__ = [
     "insurance_tier_service",
     "reservation_service",
     "payment_service",
+    "rental_service",
 ]

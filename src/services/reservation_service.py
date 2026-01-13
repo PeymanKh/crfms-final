@@ -161,6 +161,7 @@ class ReservationService:
         2. Check vehicle availability for the requested dates
         3. Calculate rental days and total price
         4. Create reservation with status 'pending'
+        5. Update vehicle status to 'reserved'
 
         Args:
             request (CreateReservationRequest): Validated reservation creation data.
@@ -239,7 +240,14 @@ class ReservationService:
             updated_at=current_time,
         )
 
-        # Save to the database
+        # Update vehicle status to 'reserved'
+        try:
+            await db_manager.update_vehicle(request.vehicle_id, {"status": "reserved"})
+            logger.info(f"Updated vehicle {request.vehicle_id} status to 'reserved'")
+        except Exception as e:
+            logger.error(f"Failed to update vehicle status: {e}")
+
+        # Save reservation to the database
         try:
             await db_manager.create_reservation(reservation_doc)
             logger.info(f"Successfully created reservation: {reservation_id}")
@@ -247,7 +255,7 @@ class ReservationService:
             logger.error(f"Failed to create reservation: {e}")
             raise
 
-        # 7. Return response data
+        # Return response data
         return ReservationData(
             id=reservation_id,
             status=ReservationStatus.PENDING.value,

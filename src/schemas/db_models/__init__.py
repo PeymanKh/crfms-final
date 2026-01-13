@@ -25,6 +25,13 @@ from schemas.db_models.reservation_models import (
     InvoiceDocument,
 )
 
+# Import rental schemas
+from schemas.db_models.rental_models import (
+    RentalReadingDocument,
+    RentalChargesDocument,
+    RentalDocument,
+)
+
 
 # Public API
 __all__ = [
@@ -43,4 +50,8 @@ __all__ = [
     "ReservationAddOnDocument",
     "ReservationDocument",
     "InvoiceDocument",
+    # rental schemas
+    "RentalReadingDocument",
+    "RentalChargesDocument",
+    "RentalDocument",
 ]

@@ -48,3 +48,10 @@ class InvoiceStatus(Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class RentalStatus(Enum):
+    """Rental status enumeration."""
+
+    ACTIVE = "active"
+    COMPLETED = "completed"

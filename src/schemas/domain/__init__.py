@@ -12,6 +12,7 @@ from schemas.domain.enums import (
     VehicleStatus,
     ReservationStatus,
     InvoiceStatus,
+    RentalStatus,
 )
 
 
@@ -24,4 +25,5 @@ __all__ = [
     "ReservationStatus",
     "RentalCharges",
     "RentalReading",
+    "RentalStatus",
 ]

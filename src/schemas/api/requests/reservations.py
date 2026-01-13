@@ -121,7 +121,7 @@ class UpdateReservationRequest(BaseModel):
     model_config = {
         "json_schema_extra": {
             "example": {
-                "status": "confirmed",
+                "status": "approved",
                 "return_date": "2026-02-07",
                 "add_on_ids": ["addon-uuid-1"],
             }

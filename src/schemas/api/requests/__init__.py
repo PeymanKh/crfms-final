@@ -44,6 +44,14 @@ from schemas.api.requests.payments import (
     ProcessPaymentRequest,
 )
 
+# Import rental schemas
+from schemas.api.requests.rentals import (
+    PickupVehicleRequest,
+    ReturnVehicleRequest,
+    ExtendRentalRequest,
+    RentalFilterRequest,
+)
+
 
 # Public API
 __all__ = [
@@ -73,4 +81,9 @@ __all__ = [
     "CreditCardPaymentDetails",
     "PayPalPaymentDetails",
     "ProcessPaymentRequest",
+    # rental schemas
+    "PickupVehicleRequest",
+    "ReturnVehicleRequest",
+    "ExtendRentalRequest",
+    "RentalFilterRequest",
 ]

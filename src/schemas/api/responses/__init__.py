@@ -32,6 +32,16 @@ from schemas.api.responses.reservations import (
 # Import payment schemas
 from schemas.api.responses.payments import PaymentData
 
+# Import rental schemas
+from schemas.api.responses.rentals import (
+    RentalReadingData,
+    RentalChargesData,
+    RentalData,
+    RentalListData,
+    PickupSuccessData,
+    ReturnSuccessData,
+)
+
 
 # Public API
 __all__ = [
@@ -57,4 +67,11 @@ __all__ = [
     "InvoiceData",
     # payment schemas
     "PaymentData",
+    # rental schemas
+    "RentalReadingData",
+    "RentalChargesData",
+    "RentalData",
+    "RentalListData",
+    "PickupSuccessData",
+    "ReturnSuccessData",
 ]

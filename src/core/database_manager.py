@@ -46,6 +46,7 @@ from schemas.db_models import (
     AddOnDocument,
     InsuranceTierDocument,
     ReservationDocument,
+    RentalDocument,
 )
 
 
@@ -1024,7 +1025,24 @@ class DatabaseManager:
             await self.connect()
 
         try:
+            from datetime import time
+
             collection = self.get_collection("reservations")
+
+            # FIX: Convert date objects to datetime for MongoDB storage
+            if "pickup_date" in update_data and isinstance(
+                update_data["pickup_date"], date
+            ):
+                update_data["pickup_date"] = datetime.combine(
+                    update_data["pickup_date"], time.min
+                )
+
+            if "return_date" in update_data and isinstance(
+                update_data["return_date"], date
+            ):
+                update_data["return_date"] = datetime.combine(
+                    update_data["return_date"], time.max
+                )
 
             # Add updated_at timestamp
             update_data["updated_at"] = datetime.now(timezone.utc)
@@ -1223,6 +1241,235 @@ class DatabaseManager:
         cursor = collection.find(query).sort("pickup_date", 1)
         reservations = await cursor.to_list(length=None)
         return reservations
+
+    async def create_rental(self, rental_data: "RentalDocument") -> str:
+        """
+        Create a new rental in the database.
+
+        Args:
+            rental_data (RentalDocument): Rental Pydantic model with validated data.
+
+        Returns:
+            str: The created rental ID
+
+        Raises:
+            DuplicateKeyError: If pickup_token already exists (idempotency violation)
+            RuntimeError: If the database is not connected
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("rentals")
+
+            # Convert Pydantic model to dict for MongoDB
+            rental_dict = rental_data.model_dump(by_alias=True, mode="json")
+
+            result = await collection.insert_one(rental_dict)
+            logger.info(f"Created rental with ID: {result.inserted_id}")
+            return str(result.inserted_id)
+
+        except DuplicateKeyError:
+            logger.warning(f"Duplicate pickup_token: {rental_data.pickup_token}")
+            raise
+
+        except Exception as e:
+            logger.error(f"Failed to create rental: {e}")
+            raise
+
+    async def find_rental_by_id(self, rental_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Find a rental by ID.
+
+        Args:
+            rental_id (str): Rental's unique identifier
+
+        Returns:
+            Optional[Dict[str, Any]]: Rental document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("rentals")
+        return await collection.find_one({"_id": rental_id})
+
+    async def find_rental_by_pickup_token(
+        self, pickup_token: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Find a rental by pickup token.
+
+        Used for idempotent pickup operations - if a rental with this token
+        already exists, return it instead of creating a duplicate.
+
+        Args:
+            pickup_token (str): Unique pickup token
+
+        Returns:
+            Optional[Dict[str, Any]]: Rental document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("rentals")
+        return await collection.find_one({"pickup_token": pickup_token})
+
+    async def find_rentals(
+        self, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find rentals with optional filters.
+
+        Common filters:
+            - customer_id: Filter by customer
+            - vehicle_id: Filter by vehicle
+            - agent_id: Filter by agent who processed pickup
+            - status: Filter by rental status (active/completed)
+            - reservation_id: Filter by associated reservation
+
+        Args:
+            filters (Optional[Dict[str, Any]]): MongoDB query filters
+
+        Returns:
+            List[Dict[str, Any]]: List of rental documents sorted by created_at (newest first)
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("rentals")
+
+        if filters is None:
+            filters = {}
+
+        cursor = collection.find(filters).sort("created_at", -1)
+        rentals = await cursor.to_list(length=None)
+        return rentals
+
+    async def update_rental(self, rental_id: str, update_data: Dict[str, Any]) -> bool:
+        """
+        Update rental information.
+
+        Typically used to:
+        - Add return_readings when vehicle is returned
+        - Add charges after return calculation
+        - Update status from 'active' to 'completed'
+
+        Args:
+            rental_id (str): Rental ID to update
+            update_data (Dict[str, Any]): Fields to update
+
+        Returns:
+            bool: True if rental was updated, False if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            collection = self.get_collection("rentals")
+
+            # Add updated_at timestamp
+            update_data["updated_at"] = datetime.now(timezone.utc)
+
+            result = await collection.update_one(
+                {"_id": rental_id}, {"$set": update_data}
+            )
+
+            if result.modified_count > 0:
+                logger.info(f"Updated rental: {rental_id}")
+                return True
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to update rental: {e}")
+            raise
+
+    async def find_rental_by_reservation(
+        self, reservation_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Find rental by associated reservation ID.
+
+        Useful for checking if a reservation has already been picked up.
+
+        Args:
+            reservation_id (str): Reservation ID
+
+        Returns:
+            Optional[Dict[str, Any]]: Rental document or None if not found
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        collection = self.get_collection("rentals")
+        return await collection.find_one({"reservation_id": reservation_id})
+
+    async def check_rental_extension_conflict(
+        self,
+        vehicle_id: str,
+        current_return_date: date,
+        new_return_date: date,
+        exclude_reservation_id: str,
+    ) -> bool:
+        """
+        Check if extending a rental would conflict with another reservation.
+
+        Used when customer wants to extend their rental - ensures the vehicle
+        doesn't have another reservation scheduled during the extension period.
+
+        Business Logic:
+            - Check reservations for same vehicle
+            - Between current_return_date and new_return_date
+            - Exclude the current reservation
+            - Only check 'pending', 'confirmed', or 'approved' reservations
+
+        Args:
+            vehicle_id (str): Vehicle ID to check
+            current_return_date (date): Current planned return date
+            new_return_date (date): Requested new return date
+            exclude_reservation_id (str): Current reservation ID (don't check against itself)
+
+        Returns:
+            bool: True if extension is possible (no conflicts), False if conflicts exist
+        """
+        if not self._is_connected:
+            await self.connect()
+
+        try:
+            from datetime import time
+
+            collection = self.get_collection("reservations")
+
+            # Convert dates to datetime for MongoDB comparison
+            current_datetime = datetime.combine(current_return_date, time.min)
+            new_datetime = datetime.combine(new_return_date, time.max)
+
+            # Find conflicting reservations
+            # A reservation conflicts if it starts before new_return_date
+            # and ends after current_return_date
+            query = {
+                "vehicle_id": vehicle_id,
+                "status": {"$in": ["pending", "confirmed", "approved"]},
+                "pickup_date": {"$lte": new_datetime},
+                "return_date": {"$gte": current_datetime},
+                "_id": {"$ne": exclude_reservation_id},
+            }
+
+            conflicting_reservation = await collection.find_one(query)
+
+            if conflicting_reservation:
+                logger.info(
+                    f"Extension conflict: Vehicle {vehicle_id} has reservation "
+                    f"{conflicting_reservation['_id']} from "
+                    f"{conflicting_reservation['pickup_date']} to "
+                    f"{conflicting_reservation['return_date']}"
+                )
+                return False  # Conflict exists
+
+            return True  # No conflicts, extension is possible
+
+        except Exception as e:
+            logger.error(f"Failed to check rental extension conflict: {e}")
+            raise
 
 
 # Create singleton instance
