@@ -19,6 +19,7 @@
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+  - [Unit Tests](#unit-tests)
 - [Complete Rental Cycle](#complete-rental-cycle)
 - [Acknowledgments](#acknowledgments)
 
@@ -240,6 +241,12 @@ make docker-logs
 ```bash
 
 make docker-clean
+```
+
+### Unit Tests
+```bash
+
+make test
 ```
 
 ---

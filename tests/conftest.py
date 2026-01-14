@@ -522,7 +522,7 @@ def get_rental(
 @pytest.fixture
 def fake_clock() -> FakeClock:
     """Returns a fake clock set to a known time"""
-    return FakeClock(datetime(2026, 1, 10, 9, 0, 0))  # Jan 10, 2026, 9 AM
+    return FakeClock(datetime(2027, 1, 10, 9, 0, 0))  # Jan 10, 2026, 9 AM
 
 
 @pytest.fixture
