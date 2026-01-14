@@ -153,7 +153,7 @@ async def list_reservations(
     **Available Filters:**
     - `customer_id`: Get all reservations for a specific customer
     - `vehicle_id`: Get all reservations for a specific vehicle
-    - `status`: Filter by reservation status (pending/confirmed/cancelled/completed)
+    - `status`: Filter by reservation status (pending/approved/cancelled/completed)
     - `pickup_date_from`: Get reservations with pickup date >= this date
     - `pickup_date_to`: Get reservations with pickup date <= this date
 
@@ -165,7 +165,7 @@ async def list_reservations(
 
     **Example Queries:**
     - `/reservations?customer_id=customer-123` - Customer's reservations
-    - `/reservations?vehicle_id=vehicle-456&status=confirmed` - Confirmed bookings for a vehicle
+    - `/reservations?vehicle_id=vehicle-456&status=approved` - approved bookings for a vehicle
     - `/reservations?pickup_date_from=2026-02-01&pickup_date_to=2026-02-07` - Week's reservations
     """
     try:
@@ -358,7 +358,7 @@ async def update_reservation(
     - Add-ons list changed
 
     **Common Updates:**
-    - Change status: `{"status": "confirmed"}`
+    - Change status: `{"status": "approved"}`
     - Extend rental: `{"return_date": "2026-02-10"}`
     - Add more add-ons: `{"add_on_ids": ["addon-1", "addon-2", "addon-3"]}`
     - Change vehicle: `{"vehicle_id": "vehicle-new-123"}`
@@ -459,7 +459,7 @@ async def delete_reservation(reservation_id: str) -> SuccessResponseWithPayload:
     In production, consider:
     - Soft delete (set status to 'cancelled' instead)
     - Archive to separate collection for historical data
-    - Implement business rules (e.g., cannot delete confirmed reservations)
+    - Implement business rules (e.g., cannot delete approved reservations)
 
     **Current Behavior:**
     - Permanently removes reservation from database
